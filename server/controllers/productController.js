@@ -1,41 +1,43 @@
- 
-// import Product from "../models/productModel.js";
-
-// export const addProduct = async (req, res) => {
-//     try {
-//         const { name, description, price, stock, category } = req.body;
-//         const image1 = req.files.image1 && req.files.image1[0];
-//         const image2 = req.files.image2 && req.files.image1[0];
-//         const image3 = req.files.image3 && req.files.image1[0];
-//         const image4 = req.files.image4 && req.files.image1[0];
-
-//         const images = [image1, image2, image3, image4].filter((item) => item !== undefined)
-
-//         let imagesUrl = await Promise.all(
-//             images.map(async (item) => {
-//                 let result = await cloudinary.uploader.upload(item.path, { resource: 'image' });
-//                 return result.secure_url
-//             })
-//         )
-
-//         const product = new Product({
-//             name,
-//             description,
-//             price,
-//             stock,
-//             category,
-//             images: imagesUrl,
-//         });
-
-//         await product.save();
-//         res.status(200).json({ message: "Product added successfully", product });
-
-//     } catch (error) {
-//         res.status(500).json({ message: "Failed to create product", error: error.message });
-//     }
-// };
-
 import Product from '../models/productModel.js';
+
+export const createProduct = async (req, res) => {
+    try {
+        const { name, description, price, stock, category } = req.body;
+
+        // Validate required fields
+        if (!name || !description || !price || stock === undefined || !category) {
+            return res.status(400).json({ success: false, message: 'All fields are required' });
+        }
+
+        if (price <= 0 || stock < 0) {
+            return res.status(400).json({ success: false, message: 'Invalid price or stock' });
+        }
+
+        let images = [];
+
+        if (req.files) {
+          Object.keys(req.files).forEach((key) => {
+            images.push(req.files[key][0].filename);
+          });
+        }
+
+        const product = new Product({
+            name,
+            description,
+            price,
+            stock,
+            category,
+            images: images || []
+        });
+
+        await product.save();
+
+        res.status(200).json({ success: true, message: 'Product created successfully', product });
+    } catch (error) {
+        console.error('Create product error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
 
 export const getAllProducts = async (req, res) => {
     try {
@@ -83,36 +85,7 @@ export const getProductById = async (req, res) => {
     }
 };
 
-export const createProduct = async (req, res) => {
-    try {
-        const { name, description, price, stock, category, images } = req.body;
 
-        // Validate required fields
-        if (!name || !description || !price || stock === undefined || !category) {
-            return res.status(400).json({ success: false, message: 'All fields are required' });
-        }
-
-        if (price <= 0 || stock < 0) {
-            return res.status(400).json({ success: false, message: 'Invalid price or stock' });
-        }
-
-        const product = new Product({
-            name,
-            description,
-            price,
-            stock,
-            category,
-            images: images || []
-        });
-
-        await product.save();
-
-        res.status(201).json({ success: true, message: 'Product created successfully', product });
-    } catch (error) {
-        console.error('Create product error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
 
 export const updateProduct = async (req, res) => {
     try {

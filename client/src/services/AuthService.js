@@ -43,6 +43,9 @@ const AuthService = {
 
       console.log('Login response:', response.data);
 
+      console.log("Storing token:", response.data.token);
+      
+
       // Store token in localStorage
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
@@ -84,10 +87,20 @@ const AuthService = {
    */
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/api/user/profile');
+      const response = await api.get('/api/user/profile', {headers:{Authorization: `Bearer ${localStorage.getItem('token')}`}});
       return response.data;
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch user';
+      throw { message: errorMessage };
+    }
+  },
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put('/api/user/update-profile', profileData, {headers:{Authorization: `Bearer ${localStorage.getItem('token')}`}});
+      return response.data;
+    }
+    catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile';
       throw { message: errorMessage };
     }
   },

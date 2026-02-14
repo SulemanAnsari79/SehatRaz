@@ -171,3 +171,17 @@ export const updateAppointmentStatus = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+export const getAllAppointments = async (req, res) => {
+    try {
+        const appointments = await Appointment.find()
+            .populate('user', '-password')
+            .populate('doctor', '-password')
+            .sort({ date: -1 });
+        res.status(200).json({ success: true, appointments });
+    }
+    catch (error) {
+        console.error('Get all appointments error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};

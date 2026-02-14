@@ -65,18 +65,13 @@ export default function Login() {
 
   const handleRegister = async () => {
     try {
-      const response = await AuthService.register(
-        form.name,
-        form.email,
-        form.password,
-        role
-      );
-
+      const response = await AuthService.register(form.name, form.email, form.password,role);
       if (response.success || response.message) {
         toast.success(response.message || "Registered successfully! Please login.");
         setForm({ name: "", email: "", password: "" });
         setMode("login");
-      } else {
+      } 
+      else {
         toast.error("Registration failed. Please try again.");
       }
     } catch (error) {
@@ -88,16 +83,12 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await AuthService.login(
-        form.email,
-        form.password,
-        role
-      );
+      const response = await AuthService.login(form.email, form.password, role);
 
-      if (response.success) {
+      if (response.data.success) {
         // Extract user data based on role
         let userData = null;
-        
+
         if (role === "user" && response.user) {
           userData = { ...response.user, role: "user" };
         } else if (role === "doctor" && response.doctor) {
@@ -145,7 +136,7 @@ export default function Login() {
 
   const submit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -185,7 +176,7 @@ export default function Login() {
             <h3 className="text-2xl font-semibold">
               {mode === "login" ? "Sign in" : mode === "signup" ? "Create account" : "Reset password"}
             </h3>
-            
+
             {/* Role Dropdown */}
             <div className="relative">
               <button
@@ -197,7 +188,7 @@ export default function Login() {
                 <span className="capitalize font-medium">{selectedRole?.label}</span>
                 <ChevronDown size={18} className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {dropdownOpen && (
                 <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                   {roles.map((r) => (
@@ -209,9 +200,8 @@ export default function Login() {
                         setDropdownOpen(false);
                         setErrors({}); // Clear errors when role changes
                       }}
-                      className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-indigo-50 transition duration-150 ${
-                        role === r.value ? 'bg-indigo-100 text-indigo-600 font-medium' : 'text-gray-700'
-                      }`}
+                      className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-indigo-50 transition duration-150 ${role === r.value ? 'bg-indigo-100 text-indigo-600 font-medium' : 'text-gray-700'
+                        }`}
                     >
                       <span className="text-lg">{r.icon}</span>
                       <span>{r.label}</span>
@@ -232,9 +222,8 @@ export default function Login() {
                   value={form.name}
                   onChange={onChange}
                   required
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    errors.name ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="Enter your full name"
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
@@ -249,9 +238,8 @@ export default function Login() {
                 value={form.email}
                 onChange={onChange}
                 required
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="you@example.com"
               />
               {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
@@ -266,9 +254,8 @@ export default function Login() {
                   value={form.password}
                   onChange={onChange}
                   required
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   placeholder="••••••••"
                 />
                 {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}

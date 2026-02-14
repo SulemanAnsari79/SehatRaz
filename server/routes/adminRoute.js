@@ -1,10 +1,11 @@
 import express from 'express';
 import adminAuth from '../middlewares/adminAuth.js';
+import upload from '../middlewares/uploadImg.js';
 import {adminDashboard, adminLogin, adminLogout, createProduct, createUser, deleteAppointment, deleteDoctor, deleteOrder, deleteProduct, deleteUser, getAdminStats, getAllAppointments, getAllDoctors, getAllOrders, getAllProducts, getAllUsers, getAppointmentById, getDoctorById, getOrderById, getProductById, getUserById, rejectDoctor, updateAppointment, updateOrderStatus, updateProduct, updateUser, verifyDoctor   } from '../controllers/adminController.js';
 
 
 
-const adminRouter= express.Router();
+const adminRouter= express.Router(); 
 
 adminRouter.post('/login', adminLogin);
 adminRouter.post('/logout', adminLogout);
@@ -25,7 +26,7 @@ adminRouter.post('/verify-doctor/:id',adminAuth, verifyDoctor);
 adminRouter.post('/reject-doctor/:id',adminAuth, rejectDoctor);
 adminRouter.delete('/delete-doctor/:id',adminAuth, deleteDoctor);
 
-adminRouter.post('/create-product',adminAuth, createProduct);
+adminRouter.post('/create-product',adminAuth,upload.fields([{name:'image1',maxCount:1},{name:'image2',maxCount:1},{name:'image3',maxCount:1},{name:'image4',maxCount:1}]), createProduct);
 adminRouter.get('/products',adminAuth, getAllProducts);
 adminRouter.get('/product/:id',adminAuth, getProductById);
 adminRouter.put('/update-product/:id',adminAuth, updateProduct);

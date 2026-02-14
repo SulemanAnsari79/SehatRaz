@@ -1,27 +1,85 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { toast } from "react-toastify";
 import { useState } from "react";
+import AuthService from "../../services/AuthService";
+import OrderService from "../../services/OrderService";
 
 const Profile = () => {
 
-  const [name, setName] = useState("User Name");
-  const [email, setEmail] = useState("user@gmail.com")
-  const [phone, setPhone] = useState("123-456-7890");
-  const [address, setAddress] = useState("123 Main St, City, Country");
-  
-  const [orders, setOrders] = useState([
-    { id: 1, item: "Vitamin C Tablets", status: "Delivered" },
-    { id: 2, item: "Skin Care Cream", status: "In Transit" },
-    { id: 3, item: "Blood Pressure Monitor", status: "Processing" },
-  ]);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
 
-  const UpdateHandler = (e) => {
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const data = await AuthService.getCurrentUser();
+
+      console.log("Profile data:", data);
+
+      setName(data.user.name || "");
+      setEmail(data.user.email || "");
+      setPhone(data.user.phone || "");
+      setAddress(data.user.address || "");
+
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+      toast.error("Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrders = async () => {
+    try {
+      setOrdersLoading(true);
+      const response = await OrderService.getUserOrders();
+      if (response.success) {
+        setOrders(response.orders || []);
+      } else {
+        toast.error(response.message || "Failed to load orders");
+      }
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      toast.error(error.message || "Failed to load orders");
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+    fetchOrders();
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "name") setName(value);
+    if (name === "email") setEmail(value);
+    if (name === "phone") setPhone(value);
+    if (name === "address") setAddress(value);
+  };
+
+  const UpdateHandler =async (e) => {
     e.preventDefault();
 
-    // Implement profile update logic here
+    const response= await AuthService.updateProfile({ name, email, phone, address });
+    if (response.success) {
     toast.success("Profile updated successfully!");
+    fetchProfile(); // Refresh profile data after update
+    } else {
+    toast.error(response.message || "Failed to update profile");
+    }
+  };
+
+  const handleProfileChange = () => {
+    toast.info("Profile picture change feature is coming soon!");
   };
 
   return (
@@ -36,11 +94,11 @@ const Profile = () => {
 
           <img src="/user.png" alt="User" className="w-32 h-32 mx-auto rounded-full object-cover"/>
 
-          <h2 className="mt-4 text-xl font-semibold">Muhammad Suleman</h2>
+          <h2 className="mt-4 text-xl font-semibold">{name}</h2>
 
-          <p className="text-gray-500">sehatraz@gmail.com</p>
+          <p className="text-gray-500">{email}</p>
 
-          <button className="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Change Photo</button>
+          <button onClick={handleProfileChange} className="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Change Photo</button>
 
         </div>
 
@@ -51,13 +109,13 @@ const Profile = () => {
 
           <div className="grid sm:grid-cols-2 gap-4">
 
-            <input type="text" placeholder="Full Name" className="border p-3 rounded"/>
+            <input type="text" name="name" placeholder="Full Name" value={name} onChange={handleInputChange} className="border p-3 rounded"/>
 
-            <input type="email" placeholder="Email Address" className="border p-3 rounded"/>
+            <input type="email" name="email" placeholder="Email Address" value={email} onChange={handleInputChange} className="border p-3 rounded"/>
 
-            <input type="text"placeholder="Phone Number" className="border p-3 rounded"/>
+            <input type="text" name="phone" placeholder="Phone Number" value={phone} onChange={handleInputChange} className="border p-3 rounded"/>
 
-            <input type="text" placeholder="Address" className="border p-3 rounded"/>
+            <input type="text" name="address" placeholder="Address" value={address} onChange={handleInputChange} className="border p-3 rounded"/>
 
           </div>
           <button type="submit" className="mt-6 bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">Save Changes</button>
@@ -70,24 +128,30 @@ const Profile = () => {
 
         <h3 className="text-xl font-semibold mb-4">Recent Orders</h3>
 
-        <div className="space-y-3">
-
-          <div className="flex justify-between border-b pb-2">
-            <span>Vitamin C Tablets</span>
-            <span className="text-green-600">Delivered</span>
+        {  ordersLoading ? (
+          <p className="text-gray-500">Loading orders...</p>
+        ) : orders.length === 0 ? (
+          <p className="text-gray-500">No orders yet</p>
+        ) : (
+          <div className="space-y-3">
+            {orders.map((order, index) => (
+              <div key={order._id || index} className="flex justify-between border-b pb-2">
+                <div>
+                  <p className="font-medium">{order.item || order.productName || 'Product'}</p>
+                  <p className="text-sm text-gray-500">Order ID: {order._id}</p>
+                </div>
+                <span className={`font-medium ${
+                  order.status === 'Delivered' ? 'text-green-600' :
+                  order.status === 'In Transit' ? 'text-yellow-500' :
+                  order.status === 'Processing' ? 'text-blue-500' :
+                  'text-gray-500'
+                }`}>
+                  {order.status || 'Pending'}
+                </span>
+              </div>
+            ))}
           </div>
-
-          <div className="flex justify-between border-b pb-2">
-            <span>Skin Care Cream</span>
-            <span className="text-yellow-500">In Transit</span>
-          </div>
-
-          <div className="flex justify-between">
-            <span>Blood Pressure Monitor</span>
-            <span className="text-blue-500">Processing</span>
-          </div>
-
-        </div>
+        )}
 
       </div>
 

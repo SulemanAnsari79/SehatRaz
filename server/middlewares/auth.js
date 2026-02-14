@@ -14,11 +14,11 @@ const auth = async (req,res,next)=>{
     if (!decodedToken || !decodedToken.role || !['user', 'doctor', 'admin'].includes(decodedToken.role)) {
           return res.status(403).json({success:false, message: "Access Denied" });
     }
-    
+    // console.log("Decoded Token:", decodedToken);
     // For non-admin users, verify they exist in database
     if (decodedToken.role !== "admin") {
       if (decodedToken.role === "user") {
-        const user = await User.findById(decodedToken.id);
+        const user = await User.findById(decodedToken._id);
         if(!user){
           return res.status(401).json({success:false, message:"User not found"});
         }

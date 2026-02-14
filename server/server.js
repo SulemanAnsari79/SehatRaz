@@ -12,7 +12,9 @@ import cookieParser from 'cookie-parser';
 import userRouter from './routes/userRoute.js';
 import doctorRouter from './routes/doctorRoute.js';
 import adminRouter from './routes/adminRoute.js';
-// import productRouter from './routes/productRoute.js';
+import cartRouter from './routes/cartRoute.js';
+import productRouter from './routes/productRoute.js';
+import orderRouter from './routes/orderRoute.js';
 
 
 // dotenv.config();
@@ -24,8 +26,8 @@ connectDB();
 connectCloudinry();
 
 app.use(express.json());
-app.use(cors({origin: "http://localhost:5173", credentials: true, limiter:true}));
-app.use(limiter);
+app.use(cors({origin: "http://localhost:5173", credentials: true}));//, limiter:true
+// app.use(limiter);
 app.use(helmet());
 app.use(cookieParser());
 
@@ -37,9 +39,9 @@ app.get('/', (req, res) => {
 app.use('/api/user',userRouter);
 app.use('/api/doctor',doctorRouter);
 app.use('/api/admin',adminRouter);
-// app.use('/api/product',productRouter);
-// app.use('/api/cart',cartRouter);
-// app.use('/api/order',orderRouter);
+app.use('/api/cart',cartRouter);
+app.use('/api/product',productRouter);
+app.use('/api/order',orderRouter);
 // app.use('/api/appointment',appointmentRouter);
 // app.use('/api/question',questionRouter);
 

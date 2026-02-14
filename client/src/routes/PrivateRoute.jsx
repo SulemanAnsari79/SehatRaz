@@ -3,7 +3,12 @@ import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
 const PrivateRoute = () => {
-  const { user } = useContext(AuthContext);
+  const { user, isLoading } = useContext(AuthContext);
+  
+  // Wait for auth hydration to complete
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
   
   // Allow user role to access protected routes
   if (!user) {

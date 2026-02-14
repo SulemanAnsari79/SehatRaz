@@ -155,10 +155,53 @@ const deleteDoctor = async (req,res)=>{
   res.json({message:"Doctor deleted"});
 };
 
-const createProduct = async (req,res)=>{
-  const product = await Product.create(req.body);
-  res.status(201).json(product);
-};
+// const createProduct = async (req,res)=>{
+//   const product = await Product.create(req.body);
+//   res.status(201).json(product);
+// };
+
+const createProduct = async (req, res) => {
+    try {
+      const { name, description, price, category, subCategory, sizes, bestSeller } = req.body;
+
+      const images = [];
+
+      if (req.files.image1) images.push(req.files.image1[0]);
+      if (req.files.image2) images.push(req.files.image2[0]);
+      if (req.files.image3) images.push(req.files.image3[0]);
+      if (req.files.image4) images.push(req.files.image4[0]);
+
+      const imagesUrl = await Promise.all(
+        images.map(async (item) => {
+          const result = await cloudinary.uploader.upload(item.path, {
+            resource_type: "image"
+          });
+          return result.secure_url;
+        })
+      );
+    
+      const productData = {
+        name,
+        description,
+        price: Number(price),
+        image: imagesUrl,
+        sizes: sizes ? JSON.parse(sizes) : [],
+        category,
+        subCategory,
+        bestSeller: bestSeller === "true",
+        date: Date.now()
+      };
+    
+      const product = new productModel(productData);
+      await product.save();
+    
+      res.json({ success: true, message: "Product added" });
+    
+    }catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+
+}
 
 const getAllProducts = async (req,res)=>{
   const products = await Product.find();

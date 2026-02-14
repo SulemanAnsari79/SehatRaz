@@ -114,16 +114,16 @@ import DoctorDashboard from "./pages/doctor/DoctorDashboard.jsx";
 import Appointments from "./pages/doctor/Appointments.jsx";
 import Patients from "./pages/doctor/Patients.jsx";
 import DoctorProfile from "./pages/doctor/DoctorProfile.jsx";
-// import Patients from "./pages/doctor/Patients.jsx";
-// import DoctorProfile from "./pages/doctor/DoctorProfile.jsx";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import AuthProvider from "./context/AuthContext.jsx";
 
 
 function App() {
   return (
     <BrowserRouter>
+    <AuthProvider>
       <ToastContainer />
       <Routes>
 
@@ -169,6 +169,7 @@ function App() {
         </Route>
 
       </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
