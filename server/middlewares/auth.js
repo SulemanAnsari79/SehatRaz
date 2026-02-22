@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
+import Doctor from "../models/doctorModel.js";
 
 const auth = async (req,res,next)=>{
   try{
@@ -23,6 +24,12 @@ const auth = async (req,res,next)=>{
           return res.status(401).json({success:false, message:"User not found"});
         }
         req.user = user;
+      } else if (decodedToken.role === "doctor") {
+        const doctor = await Doctor.findById(decodedToken._id);
+        if(!doctor){
+          return res.status(401).json({success:false, message:"Doctor not found"});
+        }
+        req.user = doctor;
       }
     } else {
       // For admin, just set user object with decoded token

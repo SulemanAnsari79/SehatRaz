@@ -4,8 +4,8 @@ import { addToCart, getCart, removeFromCart, updateCartItem, clearCart } from ".
 
 const cartRouter = express.Router();
 
-cartRouter.post('/getUserCart', auth, getCart);
 cartRouter.post('/add',auth, addToCart);
+cartRouter.post('/getUserCart', auth, getCart);
 cartRouter.get('/update', auth, updateCartItem);
 cartRouter.post('/remove', auth, removeFromCart);
 cartRouter.post('/clear', auth,clearCart);

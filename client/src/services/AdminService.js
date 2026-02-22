@@ -1,14 +1,15 @@
 import axios from "axios";
 
-const API = axios.create({baseURL: "http://localhost:4000/api"});
+const API = axios.create({baseURL: "http://localhost:4000/api"}); 
 
 // Statistics
-export const getStats = () => API.get("/stats");
+export const getStats = () => API.get("/admin/stats",{headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}});
 
 // Users
-export const getUsers = () => API.get("/users");
-export const deleteUser = (id) => API.delete(`/users/${id}`);
-export const updateUser = (id, data) => API.put(`/users/${id}`, data);
+export const getUsers = () => API.get("/user/users", {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}} );
+export const createUser = (data) => API.post("/user/create-user", data, {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}} );
+export const updateUser = (id, data) => API.put(`/user/update-user/${id}`, data, {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}} );
+export const deleteUser = (id) => API.delete(`/user/delete-user/${id}`, {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}} );
 
 // Doctors
 export const getDoctors = () => API.get("/doctors");
@@ -17,9 +18,9 @@ export const updateDoctor = (id, data) => API.put(`/doctors/${id}`, data);
 
 // Products
 export const getProducts = () => API.get("/product/list", { withCredentials: true });
-export const createProduct = (data) => API.post("/product/create-product", data, {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}});
+export const createProduct = (data) => API.post('/product/create-product', data, {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}});
 export const updateProduct = (id, data) => API.put(`/product/update-product/${id}`, data, {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}});
-export const deleteProduct = (id) => API.delete(`/product/delete-product/${id}`);
+export const deleteProduct = (id) => API.delete(`/admin/delete-product/${id}`, {headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}});
 
 // Orders
 export const getOrders = () => API.get("/orders");

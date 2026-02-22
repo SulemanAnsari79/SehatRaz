@@ -3,22 +3,23 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { toast } from "react-toastify";
 import { useState } from "react";
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 import AuthService from "../../services/AuthService";
 import OrderService from "../../services/OrderService";
 
 const Profile = () => {
+  const { logout, navigate } = useContext(AuthContext);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   const fetchProfile = async () => {
     try {
-      setLoading(true);
       const data = await AuthService.getCurrentUser();
 
       console.log("Profile data:", data);
@@ -31,8 +32,6 @@ const Profile = () => {
     } catch (error) {
       console.error("Failed to fetch profile:", error);
       toast.error("Failed to load profile");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -82,6 +81,12 @@ const Profile = () => {
     toast.info("Profile picture change feature is coming soon!");
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+    toast.success("Logged out successfully!");
+  };
+
   return (
     <>
     <Navbar />
@@ -99,6 +104,8 @@ const Profile = () => {
           <p className="text-gray-500">{email}</p>
 
           <button onClick={handleProfileChange} className="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Change Photo</button>
+
+          <button onClick={handleLogout} className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 ml-2">Logout</button>
 
         </div>
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import adminAuth from '../middlewares/adminAuth.js';
 import upload from '../middlewares/uploadImg.js';
-import {adminDashboard, adminLogin, adminLogout, createProduct, createUser, deleteAppointment, deleteDoctor, deleteOrder, deleteProduct, deleteUser, getAdminStats, getAllAppointments, getAllDoctors, getAllOrders, getAllProducts, getAllUsers, getAppointmentById, getDoctorById, getOrderById, getProductById, getUserById, rejectDoctor, updateAppointment, updateOrderStatus, updateProduct, updateUser, verifyDoctor   } from '../controllers/adminController.js';
+import {adminDashboard, adminLogin, adminLogout, createUser, deleteAppointment, deleteDoctor, deleteOrder, deleteProduct, getAdminStats, getAllAppointments, getAllDoctors, getAllOrders, getAllProducts, getAppointmentById, getDoctorById, getOrderById, getProductById, getUserById, rejectDoctor, updateAppointment, updateOrderStatus, updateProduct, verifyDoctor   } from '../controllers/adminController.js';
 
 
 
@@ -14,10 +14,10 @@ adminRouter.get('/stats',adminAuth, getAdminStats);
 
 adminRouter.get('/dashboard',adminAuth, adminDashboard);
 adminRouter.post('/create-user',adminAuth, createUser);
-adminRouter.get('/users',adminAuth, getAllUsers);
+// adminRouter.get('/users',adminAuth, getAllUsers);
 adminRouter.get('/user/:id',adminAuth, getUserById);
-adminRouter.put('/update-user/:id',adminAuth, updateUser);
-adminRouter.delete('/delete-user/:id',adminAuth, deleteUser);
+// adminRouter.put('/update-user/:id',adminAuth, updateUser);
+// adminRouter.delete('/delete-user/:id',adminAuth, deleteUser);
 
 
 adminRouter.get('/doctors',adminAuth, getAllDoctors);
@@ -26,10 +26,10 @@ adminRouter.post('/verify-doctor/:id',adminAuth, verifyDoctor);
 adminRouter.post('/reject-doctor/:id',adminAuth, rejectDoctor);
 adminRouter.delete('/delete-doctor/:id',adminAuth, deleteDoctor);
 
-adminRouter.post('/create-product',adminAuth,upload.fields([{name:'image1',maxCount:1},{name:'image2',maxCount:1},{name:'image3',maxCount:1},{name:'image4',maxCount:1}]), createProduct);
+// adminRouter.post('/create-product',adminAuth,upload.fields([{name:'image1',maxCount:1},{name:'image2',maxCount:1},{name:'image3',maxCount:1},{name:'image4',maxCount:1}]), createProduct);
 adminRouter.get('/products',adminAuth, getAllProducts);
 adminRouter.get('/product/:id',adminAuth, getProductById);
-adminRouter.put('/update-product/:id',adminAuth, updateProduct);
+adminRouter.put('/update-product/:id',adminAuth,upload.fields([{name:'image1',maxCount:1},{name:'image2',maxCount:1},{name:'image3',maxCount:1},{name:'image4',maxCount:1}]), updateProduct);
 adminRouter.delete('/delete-product/:id',adminAuth, deleteProduct);
 
 adminRouter.get('/orders',adminAuth, getAllOrders);

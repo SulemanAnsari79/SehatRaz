@@ -80,15 +80,6 @@ const createUser = async (req, res) => {
   }
 };
 
-const getAllUsers = async (req,res)=>{
-  try{
-    const users = await User.find().select("-password");
-    res.json(users);
-  }catch(err){
-    res.status(500).json({message:"Server error"});
-  }
-};
-
 const getUserById = async (req,res)=>{
   try{
     const user = await User.findById(req.params.id).select("-password");
@@ -99,29 +90,7 @@ const getUserById = async (req,res)=>{
   }
 };
 
-const updateUser = async (req,res)=>{
-  try{
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {new:true}
-    );
-    res.json(user);
-  }catch(err){
-    res.status(500).json({message:"Update failed"});
-  }
-};
-
-const deleteUser = async (req,res)=>{
-  try{
-    await User.findByIdAndDelete(req.params.id);
-    res.json({message:"User deleted"});
-  }catch(err){
-    res.status(500).json({message:"Delete failed"});
-  }
-};
-
- const getAllDoctors = async (req,res)=>{
+const getAllDoctors = async (req,res)=>{
   const doctors = await Doctor.find();
   res.json(doctors);
 };
@@ -162,7 +131,16 @@ const deleteDoctor = async (req,res)=>{
 
 const createProduct = async (req, res) => {
     try {
-      const { name, description, price, category, subCategory, sizes, bestSeller } = req.body;
+      const { name, description, price, category, sizes, bestSeller, stock } = req.body;
+
+      // Validate required fields
+      if (!name || !description || !price || !category || !stock) {
+        return res.status(400).json({ success: false, message: 'Name, description, price, category, and stock are required' });
+      }
+
+      if (price <= 0 || stock < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid price or stock value' });
+      }
 
       const images = [];
 
@@ -170,6 +148,10 @@ const createProduct = async (req, res) => {
       if (req.files.image2) images.push(req.files.image2[0]);
       if (req.files.image3) images.push(req.files.image3[0]);
       if (req.files.image4) images.push(req.files.image4[0]);
+
+      if (images.length === 0) {
+        return res.status(400).json({ success: false, message: 'At least one product image is required' });
+      }
 
       const imagesUrl = await Promise.all(
         images.map(async (item) => {
@@ -184,10 +166,10 @@ const createProduct = async (req, res) => {
         name,
         description,
         price: Number(price),
-        image: imagesUrl,
+        stock: Number(stock),
+        images: imagesUrl,
         sizes: sizes ? JSON.parse(sizes) : [],
         category,
-        subCategory,
         bestSeller: bestSeller === "true",
         date: Date.now()
       };
@@ -285,25 +267,40 @@ const deleteAppointment = async (req,res)=>{
 };
 
 const getAdminStats = async (req,res)=>{
-  const users = await User.countDocuments();
-  const doctors = await Doctor.countDocuments();
-  const products = await Product.countDocuments();
-  const orders = await Order.countDocuments();
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalDoctors = await Doctor.countDocuments();
+    const totalProducts = await Product.countDocuments();
+    const totalOrders = await Order.countDocuments();
 
-  res.json({
-    users,
-    doctors,
-    products,
-    orders
-  });
+    // Calculate total revenue from all orders
+    const orders = await Order.find({});
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+    const totalAppointments = await Appointment.countDocuments();
+    const pendingAppointments = await Appointment.countDocuments({ status: { $in: ['Booked', 'Pending'] } });
+
+    res.json({
+      success: true,
+      totalUsers,
+      totalDoctors,
+      totalOrders,
+      totalRevenue,
+      totalAppointments,
+      pendingAppointments
+    });
+  } catch (error) {
+    console.error('Get admin stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 };
 
 
 export { adminDashboard,
   createUser,
-  getAllUsers,  
-  deleteUser,
-  updateUser,
+  // getAllUsers,  
+  // deleteUser,
+  // updateUser,
   getUserById,
   getAdminStats,
   getAllDoctors,

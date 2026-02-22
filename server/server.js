@@ -6,7 +6,7 @@ import connectDB from './config/db.js';
 import connectCloudinry from './config/cloudinary.js';
 
 import helmet from "helmet";
-import limiter from './middlewares/rateLimiter.js';
+// import limiter from './middlewares/rateLimiter.js';
 import cookieParser from 'cookie-parser';
 
 import userRouter from './routes/userRoute.js';
@@ -15,6 +15,8 @@ import adminRouter from './routes/adminRoute.js';
 import cartRouter from './routes/cartRoute.js';
 import productRouter from './routes/productRoute.js';
 import orderRouter from './routes/orderRoute.js';
+import appointmentRouter from './routes/appointmentRoute.js';
+import recommendationRouter from './routes/recommendationRoute.js';
 
 
 // dotenv.config();
@@ -31,6 +33,9 @@ app.use(cors({origin: "http://localhost:5173", credentials: true}));//, limiter:
 app.use(helmet());
 app.use(cookieParser());
 
+// Serve static files from uploads directory (for backward compatibility)
+// app.use('/uploads', express.static('uploads'));
+
 app.get('/', (req, res) => {
     res.send('Server is running successfully');
 });
@@ -42,8 +47,8 @@ app.use('/api/admin',adminRouter);
 app.use('/api/cart',cartRouter);
 app.use('/api/product',productRouter);
 app.use('/api/order',orderRouter);
-// app.use('/api/appointment',appointmentRouter);
-// app.use('/api/question',questionRouter);
+app.use('/api/appointment',appointmentRouter);
+app.use('/api/recommendation',recommendationRouter);
 
 
 app.listen(PORT, () => {

@@ -1,24 +1,21 @@
 import React, { useState } from "react";
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import ProductCard from "../../components/ProductCard";
 
-const productData = [
-  { id: 1, name: "Vitamin C Tablets", price: 299, category: "Supplements", image: "/p1.jpg" },
-  { id: 2, name: "Skin Care Cream", price: 499, category: "Skin Care", image: "/p2.jpg" },
-  { id: 3, name: "Blood Pressure Monitor", price: 1999, category: "Devices", image: "/p3.jpg" },
-  { id: 4, name: "Protein Powder", price: 1299, category: "Supplements", image: "/p4.jpg" },
-  { id: 5, name: "Digital Thermometer", price: 199, category: "Devices", image: "/p5.jpg" },
-];
 
 const Products = () => {
 
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState(['All']);
+  const {products} = useContext(AuthContext);
 
-  const filteredProducts = productData.filter((product) => {
+  const filteredProducts = products.filter((product) => {
     return (
       product.name.toLowerCase().includes(search.toLowerCase()) &&
-      (category === "All" || product.category === category)
+      (category.includes("All") || category.includes("Suppliments")  && product.category === "Suppliments" || category.includes("Skin Care") && product.category === "Skin Care" || category.includes("tool") && product.category === "tool")
     );
   });
 
@@ -52,9 +49,9 @@ const Products = () => {
           onChange={(e) => setCategory(e.target.value)}
         >
           <option value="All">All Categories</option>
-          <option value="Supplements">Supplements</option>
+          <option value="Suppliments">Suppliments</option>
           <option value="Skin Care">Skin Care</option>
-          <option value="Devices">Devices</option>
+          <option value="tool">Tools</option>
         </select>
 
       </div>
@@ -64,35 +61,13 @@ const Products = () => {
 
         {filteredProducts.length > 0 ? (
           filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition"
-            >
-              <img
-                src={product.image}
-                alt={product.name}
-                className="h-40 w-full object-cover rounded"
-              />
-
-              <h3 className="mt-3 font-semibold">
-                {product.name}
-              </h3>
-
-              <p className="text-green-600 font-bold">
-                ₹{product.price}
-              </p>
-
-              <button className="mt-3 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">
-                Add to Cart
-              </button>
-            </div>
+            <ProductCard key={product._id} product={product} />
           ))
         ) : (
           <p className="text-center col-span-full text-gray-500">
             No products found.
           </p>
         )}
-
       </div>
     </div>
     <Footer />

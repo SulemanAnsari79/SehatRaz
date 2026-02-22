@@ -66,7 +66,7 @@ export default function Login() {
   const handleRegister = async () => {
     try {
       const response = await AuthService.register(form.name, form.email, form.password,role);
-      if (response.success || response.message) {
+      if (response.data.success || response.message) {
         toast.success(response.message || "Registered successfully! Please login.");
         setForm({ name: "", email: "", password: "" });
         setMode("login");
@@ -85,7 +85,7 @@ export default function Login() {
     try {
       const response = await AuthService.login(form.email, form.password, role);
 
-      if (response.data.success) {
+      if (response.success) {
         // Extract user data based on role
         let userData = null;
 
@@ -96,9 +96,13 @@ export default function Login() {
         } else if (role === "admin" && response.user) {
           userData = { ...response.user, role: "admin" };
         }
+        
+        contextLogin({
+        ...userData,
+        token: response.token
+      });
 
         if (userData) {
-          contextLogin(userData);
           toast.success("Logged in successfully!");
 
           // Redirect based on role

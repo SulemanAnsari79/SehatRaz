@@ -15,7 +15,7 @@ export const adminAuth = async (req,res,next)=>{
         }
         
         req.admin = decodedToken;
-        next();
+        next(); 
     }catch(error){
         res.status(401).json({success:false, message:"Invalid token"});
     }

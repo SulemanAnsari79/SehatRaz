@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "../../services/AdminService.js";
+// import { getAllProducts } from "../../services/ProductService.js";
 import {
   FiSearch,
   FiEdit2,
@@ -26,7 +27,7 @@ const ManageProducts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [viewType, setViewType] = useState("grid");
+  const [viewType, setViewType] = useState("table");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState("view");
@@ -35,11 +36,66 @@ const ManageProducts = () => {
     description: "",
     price: "",
     category: "",
+    sizes: [],
+    tags: [],
+    bestSeller: false,
     stock: "",
     discount: "0",
     isActive: true,
   });
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([null, null, null, null]);
+  const [sizeInput, setSizeInput] = useState("");
+  const [tagInput, setTagInput] = useState("");
+
+  // Size tag management
+  const addSizeTag = () => {
+    if (sizeInput.trim() && !formData.sizes.includes(sizeInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        sizes: [...prev.sizes, sizeInput.trim()]
+      }));
+      setSizeInput("");
+    }
+  };
+
+  const removeSizeTag = (sizeToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      sizes: prev.sizes.filter(size => size !== sizeToRemove)
+    }));
+  };
+
+  const handleSizeKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSizeTag();
+    }
+  };
+
+  // Tag management
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()]
+      }));
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const handleTagKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  };
 
   // Fetch products on component mount
   useEffect(() => {
@@ -97,26 +153,51 @@ const ManageProducts = () => {
   };
 
   const handleEditProduct = (product) => {
+    console.log("handleEditProduct called with product:", product);
     setSelectedProduct(product);
-    setFormData(product);
+    // Create a clean formData object with all necessary fields
+    setFormData({
+      name: product.name || "",
+      description: product.description || "",
+      price: product.price || "",
+      category: product.category || "",
+      sizes: product.sizes || [],
+      tags: product.tags || [],
+      bestSeller: product.bestSeller || false,
+      stock: product.stock || "",
+      discount: product.discount || "0",
+      isActive: product.isActive !== undefined ? product.isActive : true,
+      images: product.images || [] // Keep for reference, but won't be sent
+    });
+    setImageFiles([null, null, null, null]); // Reset image files for new uploads
+    setSizeInput("");
+    setTagInput("");
     setModalMode("edit");
     setShowModal(true);
+    console.log("Modal mode set to edit, showModal set to true");
   };
 
   const handleAddProduct = () => {
+    console.log("handleAddProduct called");
     setSelectedProduct(null);
     setFormData({
       name: "",
       description: "",
       price: "",
       category: "",
+      sizes: [],
+      tags: [],
+      bestSeller: false,
       stock: "",
       discount: "0",
       isActive: true,
     });
-    setImageFile(null);
+    setImageFiles([null, null, null, null]);
+    setSizeInput("");
+    setTagInput("");
     setModalMode("add");
     setShowModal(true);
+    console.log("showModal set to true");
   };
 
   const handleDeleteProduct = async (id) => {
@@ -147,18 +228,34 @@ const ManageProducts = () => {
   const handleSaveProduct = async () => {
     try {
       const formDataToSend = new FormData();
-      Object.keys(formData).forEach(key => {
-        formDataToSend.append(key, formData[key]);
+
+      // Only send updatable fields
+      const updatableFields = ['name', 'description', 'price', 'category', 'sizes', 'tags', 'bestSeller', 'stock', 'discount', 'isActive'];
+
+      updatableFields.forEach(key => {
+        if (key in formData) {
+          if (key === 'sizes' && Array.isArray(formData[key])) {
+            formDataToSend.append(key, JSON.stringify(formData[key]));
+          } else if (key === 'tags' && Array.isArray(formData[key])) {
+            formDataToSend.append(key, JSON.stringify(formData[key]));
+          } else {
+            formDataToSend.append(key, formData[key]);
+          }
+        }
       });
-      if (imageFile) {
-        formDataToSend.append('image', imageFile);
-      }
+
+      // Append image files with correct field names
+      imageFiles.forEach((file, index) => {
+        if (file) {
+          formDataToSend.append(`image${index + 1}`, file);
+        }
+      });
 
       if (modalMode === "add") {
         const response = await createProduct(formDataToSend);
         if (response.data.success) {
           toast.success("Product added successfully");
-          setProducts([...products, response.data]);
+          fetchProducts(); // Refresh the product list
         } else {
           throw new Error(response.data.message || "Failed to add product");
         }
@@ -166,18 +263,14 @@ const ManageProducts = () => {
         const response = await updateProduct(selectedProduct._id, formDataToSend);
         if (response.data.success) {
           toast.success("Product updated successfully");
-          setProducts(
-            products.map((product) =>
-              product._id === selectedProduct._id ? { ...product, ...formData } : product
-            )
-          );
+          fetchProducts(); // Refresh the product list
         } else {
           throw new Error(response.data.message || "Failed to update product");
         }
       }
       setShowModal(false);
       setSelectedProduct(null);
-      setImageFile(null);
+      setImageFiles([null, null, null, null]);
       setError(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save product");
@@ -186,8 +279,11 @@ const ManageProducts = () => {
 
   const handleFormChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    if (name === "image") {
-      setImageFile(files[0]);
+    if (name.startsWith("image")) {
+      const index = parseInt(name.replace("image", "")) - 1;
+      const newImageFiles = [...imageFiles];
+      newImageFiles[index] = files[0];
+      setImageFiles(newImageFiles);
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -217,7 +313,7 @@ const ManageProducts = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-r from-gray-50 to-gray-100 p-4 md:p-8">
+    <>
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -229,7 +325,7 @@ const ManageProducts = () => {
           </div>
           <button
             onClick={handleAddProduct}
-            className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition"
           >
             <FiPlus size={20} />
             Add Product
@@ -337,8 +433,8 @@ const ManageProducts = () => {
                 >
                   {/* Product Image */}
                   <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {product.image ? (
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover"/>
+                    {product.images && product.images[0] ? (
+                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover"/>
                     ) : (
                       <FiImage className="text-gray-400 text-5xl" />
                     )}
@@ -611,7 +707,7 @@ const ManageProducts = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-linear-to-r from-purple-500 to-purple-600 text-white p-6 flex items-center justify-between">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold">
                 {modalMode === "view"
                   ? "Product Details"
@@ -663,7 +759,7 @@ const ManageProducts = () => {
                       placeholder="Enter product description"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-900 mb-2">
                         Category *
@@ -678,19 +774,30 @@ const ManageProducts = () => {
                         placeholder="e.g., Supplements"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
-                        Image URL
-                      </label>
-                      <input
-                        type="file"
-                        name="image"
-                        onChange={handleFormChange}
-                        disabled={modalMode === "view"}
-                        accept="image/*"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
-                      />
-                    </div>
+                  </div>
+
+                  {/* Product Images */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((index) => (
+                      <div key={index}>
+                        <label className="block text-sm font-medium text-gray-900 mb-2">
+                          Image {index} {index === 1 ? '*' : '(Optional)'}
+                        </label>
+                        <input
+                          type="file"
+                          name={`image${index}`}
+                          onChange={handleFormChange}
+                          disabled={modalMode === "view"}
+                          accept="image/*"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                        />
+                        {imageFiles[index - 1] && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {imageFiles[index - 1].name}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -745,6 +852,105 @@ const ManageProducts = () => {
                       placeholder="0"
                     />
                   </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Sizes
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {formData.sizes.map((size, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800"
+                        >
+                          {size}
+                          {modalMode !== "view" && (
+                            <button
+                              type="button"
+                              onClick={() => removeSizeTag(size)}
+                              className="ml-2 text-purple-600 hover:text-purple-800"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    {modalMode !== "view" && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={sizeInput}
+                          onChange={(e) => setSizeInput(e.target.value)}
+                          onKeyPress={handleSizeKeyPress}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Add size (e.g., S, M, L)"
+                        />
+                        <button
+                          type="button"
+                          onClick={addSizeTag}
+                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {formData.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+                        >
+                          {tag}
+                          {modalMode !== "view" && (
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="ml-2 text-green-600 hover:text-green-800"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    {modalMode !== "view" && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyPress={handleTagKeyPress}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="Add tag (e.g., skin, eye, ear, dry skin)"
+                        />
+                        <button
+                          type="button"
+                          onClick={addTag}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="bestSeller"
+                        checked={formData.bestSeller}
+                        onChange={handleFormChange}
+                        disabled={modalMode === "view"}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                      />
+                      <span className="text-gray-900 font-medium">Mark as Best Seller</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -776,10 +982,7 @@ const ManageProducts = () => {
                 Close
               </button>
               {(modalMode === "edit" || modalMode === "add") && (
-                <button
-                  onClick={handleSaveProduct}
-                  className="px-6 py-2.5 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition font-medium"
-                >
+                <button onClick={handleSaveProduct} className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition font-medium">
                   {modalMode === "add" ? "Add Product" : "Save Changes"}
                 </button>
               )}
@@ -787,7 +990,7 @@ const ManageProducts = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

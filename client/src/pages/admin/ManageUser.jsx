@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getUsers, deleteUser, updateUser } from "../../services/AdminService.js";
+import { getUsers, createUser, deleteUser, updateUser } from "../../services/AdminService.js";
 import {
   FiSearch,
   FiEdit2,
@@ -16,6 +16,7 @@ import {
   FiMapPin,
   FiCalendar,
 } from "react-icons/fi";
+import { toast } from "react-toastify";
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -31,6 +32,7 @@ const ManageUsers = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
     phone: "",
     address: "",
     city: "",
@@ -88,6 +90,24 @@ const ManageUsers = () => {
     }
   };
 
+  const handleAddUser = () => {
+    setSelectedUser(null);
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      phone: "",
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      role: "user",
+      isActive: true,
+    });
+    setModalMode("add");
+    setShowModal(true);
+  };
+
   const handleViewUser = (user) => {
     setSelectedUser(user);
     setFormData(user);
@@ -108,8 +128,10 @@ const ManageUsers = () => {
         await deleteUser(id);
         setUsers(users.filter((user) => user._id !== id));
         setError(null);
+        toast.success("User deleted successfully");
       } catch (err) {
         setError(err.response?.data?.message || "Failed to delete user");
+        toast.error("Failed to delete user");
       }
     }
   };
@@ -124,13 +146,24 @@ const ManageUsers = () => {
       );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update user status");
+      toast.error("Failed to update user status");
     }
   };
 
   const handleSaveUser = async () => {
     try {
-      if (modalMode === "edit") {
-        await updateUser(selectedUser._id, formData);
+      if (modalMode === "add") {
+        const response = await createUser(formData);
+        if (response.data) {
+          toast.success("User created successfully");
+          setUsers([...users, response.data]);
+        }
+      } 
+      else if (modalMode === "edit") {
+        const response = await updateUser(selectedUser._id, formData);
+        if (response.data) {
+          toast.success("User updated successfully");
+        }
         setUsers(
           users.map((user) =>
             user._id === selectedUser._id ? { ...user, ...formData } : user
@@ -142,6 +175,7 @@ const ManageUsers = () => {
       setError(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save user");
+      toast.error(err.response?.data?.message || "Failed to save user");
     }
   };
 
@@ -176,7 +210,7 @@ const ManageUsers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
+    <div className="min-h-screen   ">
       {/* Header */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -186,7 +220,10 @@ const ManageUsers = () => {
               Total Users: <span className="font-semibold text-blue-600">{users.length}</span>
             </p>
           </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+          <button 
+            onClick={handleAddUser}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+          >
             <FiPlus size={20} />
             Add User
           </button>
@@ -247,7 +284,7 @@ const ManageUsers = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ">
         {/* Table Header */}
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">User List</h2>
@@ -372,13 +409,13 @@ const ManageUsers = () => {
       </div>
 
       {/* User Details Modal */}
-      {showModal && selectedUser && (
+      {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 flex items-center justify-between">
+            <div className="sticky top-0 bg-linear-to-r from-blue-500 to-blue-600 text-white p-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold">
-                {modalMode === "view" ? "User Details" : "Edit User"}
+                {modalMode === "view" ? "User Details" : modalMode === "add" ? "Add New User" : "Edit User"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -422,6 +459,21 @@ const ManageUsers = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                     />
                   </div>
+                  {modalMode === "add" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Password
+                      </label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleFormChange}
+                        placeholder="Enter password"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-2">
                       Phone
@@ -542,14 +594,14 @@ const ManageUsers = () => {
                 onClick={() => setShowModal(false)}
                 className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-medium"
               >
-                Close
+                {modalMode === "view" ? "Close" : "Cancel"}
               </button>
-              {modalMode === "edit" && (
+              {(modalMode === "edit" || modalMode === "add") && (
                 <button
                   onClick={handleSaveUser}
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition font-medium"
+                  className="px-6 py-2.5 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition font-medium"
                 >
-                  Save Changes
+                  {modalMode === "add" ? "Create User" : "Save Changes"}
                 </button>
               )}
             </div>

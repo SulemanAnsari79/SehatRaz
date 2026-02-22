@@ -3,7 +3,7 @@ import Product from '../models/productModel.js';
 
 export const addToCart = async (req, res) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?._id;
         const { productId, quantity } = req.body;
 
         if (!userId) {

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+// import { AuthContext } from '../context/AuthContext';
 import { ShoppingCart, User, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  // const {getCartItems} = useContext(AuthContext);
+
 
   const toggleMenu = () => setIsOpen(!isOpen);
 

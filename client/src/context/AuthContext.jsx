@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components, react-hooks/set-state-in-effect */
 import { createContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -36,17 +37,14 @@ const AuthProvider = ({ children }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [cartItems, setCartItems] = useState({});
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(false);
   
-  // const initialAuth = initializeAuth();
-  const [token, setToken] = useState("");
-  const [user, setUser] = useState("");
+  const initialAuth = initializeAuth();
+  const [token, setToken] = useState(initialAuth.token);
+  const [user, setUser] = useState(initialAuth.user);
 
 
-  useEffect(() => {
-    // Mark loading as complete after hydration
-    setIsLoading(false);
-  }, []);
+
 
   const login = (userData) => {
     // Ensure user has all necessary fields
@@ -176,15 +174,15 @@ const AuthProvider = ({ children }) => {
     }
   }, [backendUrl]);
 
-  // useEffect(() => {
-  //   getProductData();
-  // }, [getProductData]);
+  useEffect(() => {
+    getProductData();
+  }, [getProductData]);
 
-  // useEffect(() => {
-  // if (token) {
-  //   getUserCart(token);
-  // }
-  // }, [token, getUserCart]);
+  useEffect(() => {
+  if (token && user && user.role !== 'admin') {
+    getUserCart(token);
+  }
+  }, [token, user, getUserCart]);
 
 
   const value = {

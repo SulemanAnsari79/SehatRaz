@@ -6,8 +6,12 @@ const productSchema = new mongoose.Schema({
   price:{type:Number, required:true},
   stock:{type:Number, required:true },
   category:{type:String, required:true},
+  sizes:{type:Array, default:[]},
+  tags:{type:Array, default:[]},
+  bestSeller:{type:Boolean, default:false},
   discount:{type:Number, default:0},
-  images:{type:Array, required:true},
+  images:{type:Array, default:[]},
+  date:{type:Number, default: Date.now()},
 },{timestamps:true});
 
 export default mongoose.model("Product",productSchema);

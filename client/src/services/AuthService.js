@@ -36,15 +36,9 @@ const AuthService = {
     try {
       console.log('Attempting login with:', { email, role });
       
-      const response = await api.post(`/api/${role}/login`, {
-        email,
-        password,
-      });
+      const response = await api.post(`/api/${role}/login`, { email, password});
 
       console.log('Login response:', response.data);
-
-      console.log("Storing token:", response.data.token);
-      
 
       // Store token in localStorage
       if (response.data.token) {
@@ -52,6 +46,7 @@ const AuthService = {
       }
 
       return response.data;
+
     } catch (error) {
       console.error('Login error response:', error.response?.data);
       console.error('Login error status:', error.response?.status);

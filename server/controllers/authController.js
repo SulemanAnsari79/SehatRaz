@@ -1,50 +1,46 @@
-import User from "../models/userModel.js";
-import bcrypt from "bcrypt";
-import generateToken from "../utils/generateToken.js";
+// import User from "../models/userModel.js";
+// import bcrypt from "bcrypt";
+// import generateToken from "../utils/generateToken.js";
 
-const register = async (req,res)=>{
-  const {name,email,password} = req.body;
+// const register = async (req,res)=>{
+//   const {name,email,password} = req.body;
 
-  const userExists = await User.findOne({email});
+//   const userExists = await User.findOne({email});
 
-  if(userExists) return res.status(400).json({message:"User exists"});
+//   if(userExists) return res.status(400).json({message:"User exists"});
 
-  const user = await User.create({name,email,password});
+//   const user = await User.create({name,email,password});
 
-  const token = generateToken(user._id,user.role);
+//   const token = generateToken(user._id,user.role);
 
-  res.cookie("token",token,{
-    httpOnly:true,
-    secure:false,
-    sameSite:"strict"
-  });
+//   res.cookie("token",token,{
+//     httpOnly:true,
+//     secure:false,
+//     sameSite:"strict"
+//   });
 
-  res.json(user);
-};
+//   res.json({user, token});
+// };
+//   const {email,password} = req.body;
 
-const login = async (req,res)=>{
-  const {email,password} = req.body;
+//   const user = await User.findOne({email});
+//   if(!user) return res.status(400).json({message:"Invalid credentials"});
 
-  const user = await User.findOne({email});
-  if(!user) return res.status(400).json({message:"Invalid credentials"});
+//   const match = await bcrypt.compare(password,user.password);
+//   if(!match) return res.status(400).json({message:"Invalid credentials"});
 
-  const match = await bcrypt.compare(password,user.password);
-  if(!match) return res.status(400).json({message:"Invalid credentials"});
+//   const token = generateToken(user._id,user.role);
 
-  const token = generateToken(user._id,user.role);
+//   res.cookie("token",token,{
+//     httpOnly:true,
+//     secure:false,
+//     sameSite:"strict"
+//   });
 
-  res.cookie("token",token,{
-    httpOnly:true,
-    secure:false,
-    sameSite:"strict"
-  });
+//   res.json({user, token});
+// };
+//   res.clearCookie("token");
+//   res.json({message:"Logged out"});
+// };
 
-  res.json(user);
-};
-
-const logout = (req,res)=>{
-  res.clearCookie("token");
-  res.json({message:"Logged out"});
-};
-
-export {register,login,logout};
+// export {register,login,logout};

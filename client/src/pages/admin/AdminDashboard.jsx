@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Dashboard</h1>
@@ -172,16 +172,16 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <button className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button className="w-full px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition">
               Manage Users
             </button>
-            <button className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button className="w-full px-4 py-3 bg-linear-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition">
               Manage Doctors
             </button>
-            <button className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button className="w-full px-4 py-3 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition">
               Manage Orders
             </button>
-            <button className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button className="w-full px-4 py-3 bg-linear-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition">
               Manage Products
             </button>
           </div>

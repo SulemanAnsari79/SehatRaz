@@ -34,12 +34,18 @@ const AdminSidebar = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed md:static top-0 left-0 h-screen w-64 bg-white shadow-lg z-50 transform transition-transform duration-300
+        className={`fixed md:sticky top-0 left-0 h-screen w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 overflow-y-auto
         ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         {/* Header */}
+        {/* <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">S</span>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900 hidden sm:block">SehatRazz Admin</h1>
+          </div> */}
         <div className="p-5 border-b">
-          <h2 className="text-xl font-semibold">Admin Panel</h2>
+          <h2 className="text-xl font-semibold">SehatRaz Admin Panel</h2>
         </div>
 
         {/* Links */}
