@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState ,useContext} from 'react';
 import { Link } from 'react-router-dom';
-// import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../context/AuthContext';
 import { ShoppingCart, User, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  // const {getCartItems} = useContext(AuthContext);
+  const {getCartCount} = useContext(AuthContext);
 
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -14,7 +14,7 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Products', path: '/products' },
     { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' }
+    { name: 'Contact', path: '/contact' } 
   ];
 
   return (
@@ -31,11 +31,7 @@ const Navbar = () => {
           {/* Nav Links - Center (hidden on mobile) */}
           <div className="hidden md:flex items-center space-x-8">
             {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.path}
-                className="text-gray-700 hover:text-indigo-600 font-medium transition duration-200"
-              >
+              <Link key={link.name} to={link.path} className="text-gray-700 hover:text-indigo-600 font-medium transition duration-200">
                 {link.name}
               </Link>
             ))}
@@ -49,7 +45,7 @@ const Navbar = () => {
               className="relative text-gray-700 hover:text-indigo-600 transition duration-200"
             >
               <ShoppingCart size={24} />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{getCartCount()}</span>
             </Link>
 
             {/* Profile Icon */}

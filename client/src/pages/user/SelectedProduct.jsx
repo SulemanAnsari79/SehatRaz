@@ -9,19 +9,18 @@ const SelectedProduct = () => {
     const { productId } = useParams();
     const { products, addToCart } = useContext(AuthContext);
     const [productData, setProductData] = useState(null);
-    const [size, setSize] = useState('');
+    const [size, setSize] = useState("");
+    // const [selectedSize, setSelectedSize] = useState("");
 
-    const fetchProductData = () => {
-      if (!Array.isArray(products) || !productId) {
-        return;
-      }
+    const fetchProductData = async () => {
 
-      const product = products.find((item) => item?._id === productId);
-      if (product) {
-        setProductData(product);
-      }
-    };
-    
+      products.map((item) => {
+        if (item._id === productId) {
+          setProductData(item);
+          return null;
+        }
+      });
+    } 
     useEffect(() => {
       fetchProductData();
     }, [productId, products]);

@@ -4,16 +4,10 @@ import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import { toast } from "react-toastify";
 
 const Cart = () => {
-  const {
-    cartItems,
-    products,
-    updateQuantity,
-    getCartAmount,
-    currency,
-    delivery_fee,
-  } = useContext(AuthContext);
+  const { products, cartItems, updateQuantity, currency, navigate,delivery_fee,getCartAmount } = useContext(AuthContext);
 
   const cartList = useMemo(() => {
     const items = [];
@@ -27,8 +21,8 @@ const Cart = () => {
           const images = Array.isArray(product.images)
             ? product.images
             : Array.isArray(product.image)
-            ? product.image
-            : [product.images || product.image].filter(Boolean);
+              ? product.image
+              : [product.images || product.image].filter(Boolean);
 
           items.push({
             key: `${itemId}-${size}`,
@@ -147,16 +141,9 @@ const Cart = () => {
               </span>
             </div>
 
-            <Link
-              to="/checkout"
-              className={`w-full inline-block text-center px-2 py-3 rounded text-white ${
-                cartList.length > 0
-                  ? "bg-green-500 hover:bg-green-600"
-                  : "bg-gray-300 cursor-not-allowed"
-              }`}
-            >
-              Proceed to Checkout
-            </Link>
+            <div className='w-full text-end'>
+              <button onClick={() => cartList.length > 0 ? navigate('/checkout') : toast.error("Your cart is empty!")} className='bg-black text-white text-sm my-8 px-8 py-3 rounded-xl'>PROCEED TO CHECKOUT</button>
+            </div>
           </div>
         </div>
       </div>

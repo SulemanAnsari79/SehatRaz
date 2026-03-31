@@ -1,46 +1,46 @@
-import axios from "axios";
-
-const API = axios.create({ baseURL: "http://localhost:4000/api" });
+import api from "./Api.js";
 
 // Authentication
-export const doctorRegister = (data) => API.post("/doctor/register", data);
+export const doctorRegister = (data) => api.post("/doctor/register", data);
 
-export const doctorLogin = (data) => API.post("/doctor/login", data);
+export const doctorLogin = (data) => api.post("/doctor/login", data);
 
-export const doctorLogout = () => API.post("/doctor/logout", {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+export const doctorLogout = () => api.post("/doctor/logout");
 
 // Profile Management
-export const getDoctorProfile = () => API.get("/doctor/profile", {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+export const getDoctorProfile = () => api.get("/doctor/profile");
+export const getVerifiedDoctors = () => api.get("/doctor/list");
 
-export const updateDoctorProfile = (data) => API.post("/doctor/updateprofile", data, {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+export const updateDoctorProfile = (data) => api.post("/doctor/updateprofile", data);
+export const createLeaveRequest = (data) => api.post("/doctor/leave-request", data);
+export const getMyLeaveRequests = () => api.get("/doctor/leave-requests");
 
 // Appointments
-export const getDoctorAppointments = () => API.get("/appointment/doctor-appointments", {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+export const getDoctorAppointments = () => api.get("/appointment/doctor-appointments");
 
-export const updateAppointmentStatus = (id, status) => API.post(`/appointment/updateAppointmentStatus/${id}`, { status }, {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+export const bookAppointment = (data) => api.post("/appointment/book", data);
+
+export const createAppointmentPaymentOrder = (data) =>
+	api.post("/appointment/create-payment-order", data);
+
+export const verifyAppointmentPayment = (data) =>
+	api.post("/appointment/verify-payment", data);
+
+export const getMyBookedAppointments = () => api.get("/appointment/my-booked");
+
+export const getDoctorAvailability = (doctorId, date) =>
+	api.get(`/appointment/availability?doctorId=${encodeURIComponent(doctorId)}&date=${encodeURIComponent(date)}`);
+
+export const updateAppointmentStatus = (id, status) => api.post(`/appointment/updateAppointmentStatus/${id}`, { status });
 
 // Products (for suggesting to patients)
-export const getProducts = () => API.get("/product/list");
+export const getProducts = () => api.get("/product/list");
 
-export const getProductById = (id) => API.get(`/product/get/${id}`);
+export const getProductById = (id) => api.get(`/product/get/${id}`);
 
 // Recommendations
-export const getProductRecommendations = () => API.get("/recommendation/products", {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+export const getProductRecommendations = () => api.get("/recommendation/products");
 
-export const getRecommendationsByCategory = (category) => API.get(`/recommendation/category?category=${category}`, {
-  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-});
+export const getRecommendationsByCategory = (category) => api.get(`/recommendation/category?category=${category}`);
 
-export default API;
+export default api;

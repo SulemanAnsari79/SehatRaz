@@ -1,16 +1,41 @@
 import express from 'express';
-import {createOrder, updateOrderStatus, getMyOrders, cancelOrder } from '../controllers/orderController.js';
+import {
+  createOrder,
+  createOnlineOrder,
+  verifyOnlinePayment,
+  updateOrderStatus,
+  getMyOrders,
+  cancelOrder,
+  getAllOrders,
+  requestReturn,
+  requestReplace,
+  approveReturn,
+  rejectReturn,
+  approveReplace,
+  rejectReplace
+} from '../controllers/ordercontroller.js';
 import { adminAuth } from '../middlewares/adminAuth.js';
 import auth from '../middlewares/auth.js';
-
+ 
 const orderRouter=express.Router()
 
-//Admin features
-orderRouter.post('/list',adminAuth, createOrder);
-orderRouter.post('/status',adminAuth, updateOrderStatus);
-
+//User features
 orderRouter.post('/userorders',auth ,getMyOrders);
-orderRouter.post('/cancel',auth, cancelOrder);
+orderRouter.post('/placeorder', auth, createOrder);
+orderRouter.post('/create-online-order', auth, createOnlineOrder);
+orderRouter.post('/verify-online-payment', auth, verifyOnlinePayment);
+orderRouter.post('/cancel/:id',auth, cancelOrder);
+orderRouter.post('/:id/return',auth, requestReturn);
+orderRouter.post('/:id/replace',auth, requestReplace);
+
+//Admin features
+ 
+orderRouter.get('/orders',adminAuth, getAllOrders);
+orderRouter.put('/orders/:id',adminAuth, updateOrderStatus);
+orderRouter.put('/:id/return/approve',adminAuth, approveReturn);
+orderRouter.put('/:id/return/reject',adminAuth, rejectReturn);
+orderRouter.put('/:id/replace/approve',adminAuth, approveReplace);
+orderRouter.put('/:id/replace/reject',adminAuth, rejectReplace);
 
 
 export default orderRouter;

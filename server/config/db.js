@@ -1,16 +1,25 @@
 import mongoose from 'mongoose';
-// import connect
 
 const connectDB = async () => {
-    try {
-        await mongoose.connection.on('connected', () => {
-            console.log('MongoDB connected successfully');
-        });
+    const mongoUri = process.env.MONGODB_URI;
 
-        await mongoose.connect(process.env.MONGODB_URI);
-    } catch (error) {
-        console.error(`Error: ${error.message}`);
+    if (!mongoUri) {
+        throw new Error('MONGODB_URI is missing in environment variables');
     }
+
+    mongoose.set('bufferCommands', false);
+
+    mongoose.connection.on('connected', () => {
+        console.log('MongoDB connected successfully');
+    });
+
+    mongoose.connection.on('error', (err) => {
+        console.error(`MongoDB connection error: ${err.message}`);
+    });
+
+    await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 15000,
+    });
 };
 
 export default connectDB;

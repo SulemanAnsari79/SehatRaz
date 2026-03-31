@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
 import Doctor from "../models/doctorModel.js";
+import DeliveryMan from "../models/deliveryManModel.js";
 
 const auth = async (req,res,next)=>{
   try{
@@ -12,7 +13,7 @@ const auth = async (req,res,next)=>{
 
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     
-    if (!decodedToken || !decodedToken.role || !['user', 'doctor', 'admin'].includes(decodedToken.role)) {
+    if (!decodedToken || !decodedToken.role || !['user', 'doctor', 'admin', 'delivery'].includes(decodedToken.role)) {
           return res.status(403).json({success:false, message: "Access Denied" });
     }
     // console.log("Decoded Token:", decodedToken);
@@ -30,6 +31,12 @@ const auth = async (req,res,next)=>{
           return res.status(401).json({success:false, message:"Doctor not found"});
         }
         req.user = doctor;
+      } else if (decodedToken.role === "delivery") {
+        const dm = await DeliveryMan.findById(decodedToken._id);
+        if(!dm){
+          return res.status(401).json({success:false, message:"Delivery man not found"});
+        }
+        req.user = dm;
       }
     } else {
       // For admin, just set user object with decoded token

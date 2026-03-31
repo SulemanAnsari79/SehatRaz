@@ -9,7 +9,7 @@ const About = () => {
     <div className="bg-gray-50 min-h-screen">
 
       {/* Hero Section */}
-      <div className="bg-green-500 text-white py-20 text-center px-4">
+      <div className="bg-black text-white py-20 text-center px-4">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
           About Sehatraz
         </h1>

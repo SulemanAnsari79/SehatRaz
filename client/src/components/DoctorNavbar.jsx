@@ -1,12 +1,20 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { FiMenu, FiX, FiUser } from "react-icons/fi";
+import { AuthContext } from "../context/AuthContext";
 
 const DoctorNavbar = () => {
   const [open, setOpen] = useState(false);
+  const { logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
-    <nav className="bg-white shadow-md px-6 py-4">
+    <nav className="sticky top-0 z-30 bg-white shadow-md px-6 py-4">
       <div className="flex justify-end items-center max-w-7xl mx-auto">
 
         {/* Logo / Title
@@ -17,7 +25,9 @@ const DoctorNavbar = () => {
         {/* Desktop Menu */}
           <div className="flex  gap-3">
             <Link to="/doctor/profile" className="hover:text-blue-500"> <FiUser className="size-8" /></Link>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+            <button 
+              onClick={handleLogout}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
             Logout
           </button>
           </div>
@@ -43,7 +53,9 @@ const DoctorNavbar = () => {
             <FiUser /> Profile
           </Link>
 
-          <button className="w-full bg-red-500 text-white py-2 rounded-lg">
+          <button 
+            onClick={handleLogout}
+            className="w-full bg-red-500 text-white py-2 rounded-lg">
             Logout
           </button>
 

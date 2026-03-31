@@ -187,17 +187,6 @@ const ManageUsers = () => {
     }));
   };
 
-  const getRoleColor = (role) => {
-    switch (role) {
-      case "admin":
-        return "bg-red-100 text-red-800";
-      case "doctor":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -222,11 +211,12 @@ const ManageUsers = () => {
           </div>
           <button 
             onClick={handleAddUser}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition"
           >
             <FiPlus size={20} />
             Add User
           </button>
+          
         </div>
       </div>
 
@@ -302,7 +292,6 @@ const ManageUsers = () => {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Role</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Joined</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
@@ -316,7 +305,7 @@ const ManageUsers = () => {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
                           {user.name?.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-sm font-medium text-gray-900">{user.name}</span>
@@ -324,16 +313,6 @@ const ManageUsers = () => {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{user.phone || "—"}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(
-                          user.role
-                        )}`}
-                      >
-                        {user.role?.charAt(0).toUpperCase() +
-                          user.role?.slice(1)}
-                      </span>
-                    </td>
                     <td className="px-6 py-4">
                       {user.isActive ? (
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -348,7 +327,7 @@ const ManageUsers = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {new Date(user.createdAt).toLocaleDateString("en-GB")}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

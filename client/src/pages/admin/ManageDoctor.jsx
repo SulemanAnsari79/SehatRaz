@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getDoctors, deleteDoctor, updateDoctor } from "../../services/AdminService.js";
+import { getDoctors, deleteDoctor, verifyDoctor, rejectDoctor, updateDoctor, createDoctor } from "../../services/AdminService.js";
+import { toast } from "react-toastify";
 import {
   FiSearch,
   FiEdit2,
@@ -23,6 +24,18 @@ const ManageDoctor = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState("view");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addDoctorForm, setAddDoctorForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    specialization: "",
+    experience: "",
+    qualifications: "",
+  });
+  const [addDoctorErrors, setAddDoctorErrors] = useState({});
+  const [addingDoctor, setAddingDoctor] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -76,6 +89,7 @@ const ManageDoctor = () => {
     }
   };
 
+
   const handleViewDoctor = (doctor) => {
     setSelectedDoctor(doctor);
     setFormData(doctor);
@@ -104,12 +118,24 @@ const ManageDoctor = () => {
 
   const handleVerifyDoctor = async (id, currentStatus) => {
     try {
-      await updateDoctor(id, { verified: !currentStatus });
+      if (currentStatus) {
+        const reason = window.prompt("Enter rejection reason:");
+        if (reason === null) return;
+        if (!reason.trim()) {
+          setError("Rejection reason is required");
+          return;
+        }
+        await rejectDoctor(id, reason.trim());
+      } else {
+        await verifyDoctor(id);
+      }
+
       setDoctors(
         doctors.map((doc) =>
           doc._id === id ? { ...doc, verified: !currentStatus } : doc
         )
       );
+      setError(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update doctor");
     }
@@ -141,6 +167,67 @@ const ManageDoctor = () => {
     }));
   };
 
+  const validateAddDoctorForm = () => {
+    const errors = {};
+    if (!addDoctorForm.name.trim()) errors.name = "Name is required";
+    if (!addDoctorForm.email.trim()) errors.email = "Email is required";
+    if (!addDoctorForm.password.trim()) errors.password = "Password is required";
+    if (addDoctorForm.password.length < 6) errors.password = "Password must be at least 6 characters";
+    if (!addDoctorForm.phone.trim()) errors.phone = "Phone is required";
+    if (!addDoctorForm.specialization.trim()) errors.specialization = "Specialization is required";
+    if (!addDoctorForm.experience) errors.experience = "Experience is required";
+    if (!addDoctorForm.qualifications.trim()) errors.qualifications = "Qualifications are required";
+    return errors;
+  };
+
+  const handleAddDoctorChange = (e) => {
+    const { name, value } = e.target;
+    setAddDoctorForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (addDoctorErrors[name]) {
+      setAddDoctorErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+
+  const handleAddDoctor = async () => {
+    const errors = validateAddDoctorForm();
+    if (Object.keys(errors).length > 0) {
+      setAddDoctorErrors(errors);
+      return;
+    }
+
+    setAddingDoctor(true);
+    try {
+      const response = await createDoctor(addDoctorForm);
+      if (response.data.success) {
+        toast.success(response.data.message || "Doctor created successfully");
+        setShowAddModal(false);
+        setAddDoctorForm({
+          name: "",
+          email: "",
+          password: "",
+          phone: "",
+          specialization: "",
+          experience: "",
+          qualifications: "",
+        });
+        setAddDoctorErrors({});
+        fetchDoctors();
+      } else {
+        setError(response.data.message || "Failed to create doctor");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create doctor");
+    } finally {
+      setAddingDoctor(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -163,7 +250,9 @@ const ManageDoctor = () => {
               Total Doctors: <span className="font-semibold text-green-600">{doctors.length}</span>
             </p>
           </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition">
             <FiPlus size={20} />
             Add Doctor
           </button>
@@ -214,7 +303,6 @@ const ManageDoctor = () => {
         </div>
       </div>
 
-      {/* Doctors Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Table Header */}
         <div className="p-6 border-b border-gray-200">
@@ -245,12 +333,7 @@ const ManageDoctor = () => {
                     className="border-b border-gray-100 hover:bg-gray-50 transition"
                   >
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold">
-                          {doctor.name?.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-sm font-medium text-gray-900">{doctor.name}</span>
-                      </div>
+                      <span className="text-sm font-medium text-gray-900">{doctor.name}</span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{doctor.specialization}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{doctor.email}</td>
@@ -333,7 +416,7 @@ const ManageDoctor = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-green-500 to-green-600 text-white p-6 flex items-center justify-between">
+            <div className="sticky top-0 bg-linear-to-r from-green-500 to-green-600 text-white p-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold">
                 {modalMode === "view" ? "Doctor Details" : "Edit Doctor"}
               </h2>
@@ -455,11 +538,163 @@ const ManageDoctor = () => {
               {modalMode === "edit" && (
                 <button
                   onClick={handleSaveDoctor}
-                  className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition font-medium"
+                  className="px-6 py-2.5 bg-linear-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition font-medium"
                 >
                   Save Changes
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Doctor Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-linear-to-r from-green-500 to-green-600 text-white p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Add New Doctor</h2>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setAddDoctorErrors({});
+                }}
+                className="text-white hover:opacity-80 transition"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={addDoctorForm.name}
+                    onChange={handleAddDoctorChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      addDoctorErrors.name ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter doctor name"
+                  />
+                  {addDoctorErrors.name && <p className="text-red-500 text-xs mt-1">{addDoctorErrors.name}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={addDoctorForm.email}
+                    onChange={handleAddDoctorChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      addDoctorErrors.email ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter email"
+                  />
+                  {addDoctorErrors.email && <p className="text-red-500 text-xs mt-1">{addDoctorErrors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={addDoctorForm.password}
+                    onChange={handleAddDoctorChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      addDoctorErrors.password ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter password"
+                  />
+                  {addDoctorErrors.password && <p className="text-red-500 text-xs mt-1">{addDoctorErrors.password}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={addDoctorForm.phone}
+                    onChange={handleAddDoctorChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      addDoctorErrors.phone ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter phone number"
+                  />
+                  {addDoctorErrors.phone && <p className="text-red-500 text-xs mt-1">{addDoctorErrors.phone}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Specialization</label>
+                  <input
+                    type="text"
+                    name="specialization"
+                    value={addDoctorForm.specialization}
+                    onChange={handleAddDoctorChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      addDoctorErrors.specialization ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="e.g., Cardiology"
+                  />
+                  {addDoctorErrors.specialization && <p className="text-red-500 text-xs mt-1">{addDoctorErrors.specialization}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Experience (Years)</label>
+                  <input
+                    type="number"
+                    name="experience"
+                    value={addDoctorForm.experience}
+                    onChange={handleAddDoctorChange}
+                    min="0"
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      addDoctorErrors.experience ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="Enter experience"
+                  />
+                  {addDoctorErrors.experience && <p className="text-red-500 text-xs mt-1">{addDoctorErrors.experience}</p>}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Qualifications</label>
+                <textarea
+                  name="qualifications"
+                  value={addDoctorForm.qualifications}
+                  onChange={handleAddDoctorChange}
+                  rows="3"
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                    addDoctorErrors.qualifications ? "border-red-500" : "border-gray-300"
+                  }`}
+                  placeholder="Enter qualifications (e.g., MBBS, MD)"
+                />
+                {addDoctorErrors.qualifications && <p className="text-red-500 text-xs mt-1">{addDoctorErrors.qualifications}</p>}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setAddDoctorErrors({});
+                }}
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddDoctor}
+                disabled={addingDoctor}
+                className="px-6 py-2.5 bg-linear-to-r from-green-500 to-green-600 text-white rounded-lg hover:shadow-lg transition font-medium disabled:opacity-50"
+              >
+                {addingDoctor ? "Creating..." : "Add Doctor"}
+              </button>
             </div>
           </div>
         </div>

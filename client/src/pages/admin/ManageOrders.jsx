@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getOrders, updateOrderStatus } from "../../services/AdminService.js";
+import api from "../../services/Api";
 import {
   FiSearch,
   FiEdit2,
@@ -19,6 +20,7 @@ import {
   FiCalendar,
   FiAlertCircle,
   FiCheckCircle,
+  FiUserCheck,
 } from "react-icons/fi";
 
 const ManageOrders = () => {
@@ -26,21 +28,31 @@ const ManageOrders = () => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [updatingOrder, setUpdatingOrder] = useState(null);
+  const [requestUpdatingKey, setRequestUpdatingKey] = useState("");
   const [formData, setFormData] = useState({
     status: "",
     paymentStatus: "",
     notes: "",
   });
 
+  // Delivery man assignment state
+  const [deliveryMen, setDeliveryMen] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignOrderId, setAssignOrderId] = useState(null);
+  const [selectedDeliveryMan, setSelectedDeliveryMan] = useState("");
+  const [assigning, setAssigning] = useState(false);
+
   // Fetch orders on component mount
   useEffect(() => {
     fetchOrders();
+    fetchDeliveryMen();
   }, []);
 
   // Filter orders based on search and filters
@@ -52,20 +64,20 @@ const ManageOrders = () => {
       filtered = filtered.filter(
         (order) =>
           order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.customer?.phone?.includes(searchTerm) ||
-          order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+          order.shippingDetails?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.shippingDetails?.phone?.includes(searchTerm) ||
+          order.shippingDetails?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Filter by order status
     if (filterStatus !== "all") {
-      filtered = filtered.filter((order) => order.status === filterStatus);
+      filtered = filtered.filter((order) => order.status?.toLowerCase() === filterStatus.toLowerCase());
     }
 
     // Filter by payment status
     if (filterPayment !== "all") {
-      filtered = filtered.filter((order) => order.paymentStatus === filterPayment);
+      filtered = filtered.filter((order) => order.paymentStatus?.toLowerCase() === filterPayment.toLowerCase());
     }
 
     setFilteredOrders(filtered);
@@ -76,12 +88,50 @@ const ManageOrders = () => {
       setLoading(true);
       setError(null);
       const response = await getOrders();
-      setOrders(response.data || []);
+      setOrders(response.data.orders || []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load orders");
       console.error("Fetch orders error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDeliveryMen = async () => {
+    try {
+      const res = await api.get("/api/admin/delivery-men", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      setDeliveryMen(res.data.deliveryMen || []);
+    } catch (err) {
+      console.error("Fetch delivery men error:", err);
+    }
+  };
+
+  const openAssignModal = (orderId) => {
+    setAssignOrderId(orderId);
+    setSelectedDeliveryMan("");
+    setShowAssignModal(true);
+  };
+
+  const handleAssignOrder = async () => {
+    if (!selectedDeliveryMan) return;
+    try {
+      setAssigning(true);
+      await api.put(
+        `/api/admin/assign-order/${assignOrderId}`,
+        { deliveryManId: selectedDeliveryMan },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      setShowAssignModal(false);
+      setError(null);
+      setSuccessMessage("Order assigned to delivery man successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+      fetchOrders();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to assign order");
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -128,37 +178,64 @@ const ManageOrders = () => {
     }));
   };
 
+  const handleRequestAction = async (orderId, requestType, actionType) => {
+    const actionKey = `${orderId}-${requestType}-${actionType}`;
+    try {
+      setRequestUpdatingKey(actionKey);
+      setError(null);
+      setSuccessMessage(null);
+
+      const response = await api.put(
+        `/api/order/${orderId}/${requestType}/${actionType}`,
+        { adminNotes: "Updated from Manage Orders" },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+
+      if (response?.data?.success) {
+        setSuccessMessage(response.data.message || "Request updated successfully");
+        await fetchOrders();
+        setTimeout(() => setSuccessMessage(null), 2500);
+      } else {
+        setError(response?.data?.message || "Failed to update request");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to update request");
+    } finally {
+      setRequestUpdatingKey("");
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return {
           bg: "bg-yellow-50",
           text: "text-yellow-800",
           border: "border-yellow-200",
           badge: "bg-yellow-100 text-yellow-800",
         };
-      case "processing":
+      case "Processing":
         return {
           bg: "bg-blue-50",
           text: "text-blue-800",
           border: "border-blue-200",
           badge: "bg-blue-100 text-blue-800",
         };
-      case "shipped":
+      case "Shipped":
         return {
           bg: "bg-purple-50",
           text: "text-purple-800",
           border: "border-purple-200",
           badge: "bg-purple-100 text-purple-800",
         };
-      case "delivered":
+      case "Delivered":
         return {
           bg: "bg-green-50",
           text: "text-green-800",
           border: "border-green-200",
           badge: "bg-green-100 text-green-800",
         };
-      case "cancelled":
+      case "Cancelled":
         return {
           bg: "bg-red-50",
           text: "text-red-800",
@@ -177,11 +254,11 @@ const ManageOrders = () => {
 
   const getPaymentStatusIcon = (status) => {
     switch (status) {
-      case "paid":
+      case "Paid":
         return <FiCheckCircle className="text-green-600" />;
-      case "pending":
+      case "Pending":
         return <FiClock className="text-yellow-600" />;
-      case "failed":
+      case "Failed":
         return <FiAlertCircle className="text-red-600" />;
       default:
         return <FiDollarSign className="text-gray-600" />;
@@ -190,24 +267,24 @@ const ManageOrders = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "pending":
+      case "Pending":
         return <FiClock />;
-      case "processing":
+      case "Processing":
         return <FiPackage />;
-      case "shipped":
+      case "Shipped":
         return <FiTruck />;
-      case "delivered":
+      case "Delivered":
         return <FiCheckCircle />;
-      case "cancelled":
+      case "Cancelled":
         return <FiX />;
       default:
         return <FiPackage />;
     }
   };
 
-  const calculateTotal = (items) => {
-    return items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
-  };
+  // const calculateTotal = (items) => {
+  //   return items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
+  // };
 
   if (loading) {
     return (
@@ -230,7 +307,7 @@ const ManageOrders = () => {
             Total Orders: <span className="font-semibold text-indigo-600">{orders.length}</span>
             <span className="mx-2 text-gray-400">•</span>
             Pending: <span className="font-semibold text-yellow-600">
-              {orders.filter(o => o.status === "pending").length}
+              {orders.filter(o => o.status?.toLowerCase() === "pending").length}
             </span>
           </p>
         </div>
@@ -240,6 +317,12 @@ const ManageOrders = () => {
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           <p className="font-medium">{error}</p>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <p className="font-medium">{successMessage}</p>
         </div>
       )}
 
@@ -270,6 +353,7 @@ const ManageOrders = () => {
               <option value="pending">Pending</option>
               <option value="processing">Processing</option>
               <option value="shipped">Shipped</option>
+              <option value="out for delivery">Out for Delivery</option>
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
             </select>
@@ -346,12 +430,12 @@ const ManageOrders = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm">
-                          <p className="font-medium text-gray-900">{order.customer?.name}</p>
-                          <p className="text-gray-500 text-xs">{order.customer?.email}</p>
+                          <p className="font-medium text-gray-900">{order.shippingDetails?.fullName}</p>
+                          <p className="text-gray-500 text-xs">{order.shippingDetails?.email}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                        ₹{calculateTotal(order.items).toFixed(2)}
+                        ₹{order.totalAmount?.toFixed(2)}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -372,16 +456,67 @@ const ManageOrders = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {new Date(order.createdAt).toLocaleDateString("en-GB")}
                       </td>
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleViewOrder(order)}
-                          className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                          title="View & Edit"
-                        >
-                          <FiEye size={18} />
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => handleViewOrder(order)}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                            title="View & Edit"
+                          >
+                            <FiEye size={18} />
+                          </button>
+
+                          {/* Assign to Delivery Man button */}
+                          {!["Delivered", "Cancelled"].includes(order.status) && (
+                            <button
+                              onClick={() => openAssignModal(order._id)}
+                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition"
+                              title="Assign to Delivery Man"
+                            >
+                              <FiUserCheck size={18} />
+                            </button>
+                          )}
+
+                          {order.returnRequest?.status === "Requested" && (
+                            <>
+                              <button
+                                onClick={() => handleRequestAction(order._id, "return", "approve")}
+                                disabled={requestUpdatingKey === `${order._id}-return-approve`}
+                                className="px-2 py-1 text-xs rounded bg-orange-100 text-orange-700 hover:bg-orange-200 disabled:opacity-50"
+                              >
+                                Return ✓
+                              </button>
+                              <button
+                                onClick={() => handleRequestAction(order._id, "return", "reject")}
+                                disabled={requestUpdatingKey === `${order._id}-return-reject`}
+                                className="px-2 py-1 text-xs rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+                              >
+                                Return ✕
+                              </button>
+                            </>
+                          )}
+
+                          {order.replaceRequest?.status === "Requested" && (
+                            <>
+                              <button
+                                onClick={() => handleRequestAction(order._id, "replace", "approve")}
+                                disabled={requestUpdatingKey === `${order._id}-replace-approve`}
+                                className="px-2 py-1 text-xs rounded bg-violet-100 text-violet-700 hover:bg-violet-200 disabled:opacity-50"
+                              >
+                                Exchange ✓
+                              </button>
+                              <button
+                                onClick={() => handleRequestAction(order._id, "replace", "reject")}
+                                disabled={requestUpdatingKey === `${order._id}-replace-reject`}
+                                className="px-2 py-1 text-xs rounded bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+                              >
+                                Exchange ✕
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -429,15 +564,15 @@ const ManageOrders = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Name</p>
-                    <p className="text-gray-900 font-medium">{selectedOrder.customer?.name}</p>
+                    <p className="text-gray-900 font-medium">{selectedOrder.shippingDetails?.fullName}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Email</p>
-                    <p className="text-gray-900 font-medium text-sm">{selectedOrder.customer?.email}</p>
+                    <p className="text-gray-900 font-medium text-sm">{selectedOrder.shippingDetails?.email}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Phone</p>
-                    <p className="text-gray-900 font-medium">{selectedOrder.customer?.phone}</p>
+                    <p className="text-gray-900 font-medium">{selectedOrder.shippingDetails?.phone}</p>
                   </div>
                 </div>
               </div>
@@ -448,10 +583,10 @@ const ManageOrders = () => {
                   <FiMapPin className="text-indigo-600" />
                   Delivery Address
                 </h3>
-                <p className="text-gray-900 font-medium">{selectedOrder.shippingAddress?.address}</p>
+                <p className="text-gray-900 font-medium">{selectedOrder.shippingDetails?.address}</p>
                 <p className="text-gray-600">
-                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state}{" "}
-                  {selectedOrder.shippingAddress?.zipCode}
+                  {selectedOrder.shippingDetails?.city}, {selectedOrder.shippingDetails?.state}{" "}
+                  {selectedOrder.shippingDetails?.zip}
                 </p>
               </div>
 
@@ -474,7 +609,7 @@ const ManageOrders = () => {
                   <div className="flex justify-between pt-3 border-t-2 border-indigo-500">
                     <p className="text-lg font-bold text-gray-900">Total Amount:</p>
                     <p className="text-lg font-bold text-indigo-600">
-                      ₹{calculateTotal(selectedOrder.items).toFixed(2)}
+                      ₹{selectedOrder.totalAmount?.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -497,11 +632,12 @@ const ManageOrders = () => {
                       onChange={handleFormChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="pending">Pending</option>
-                      <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Processing">Processing</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Out for Delivery">Out for Delivery</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Cancelled">Cancelled</option>
                     </select>
                   </div>
                   <div>
@@ -514,9 +650,9 @@ const ManageOrders = () => {
                       onChange={handleFormChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="pending">Pending</option>
-                      <option value="paid">Paid</option>
-                      <option value="failed">Failed</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Failed">Failed</option>
                     </select>
                   </div>
                 </div>
@@ -589,6 +725,65 @@ const ManageOrders = () => {
                 Update Order
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Assign Delivery Man Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <FiTruck className="text-orange-500" />
+                Assign Delivery Man
+              </h2>
+              <button onClick={() => setShowAssignModal(false)} className="text-gray-400 hover:text-gray-600">
+                <FiX size={22} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Assigning this order will also set its status to <strong>Out for Delivery</strong>.
+            </p>
+            {deliveryMen.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-6">
+                No active delivery men found. Create one first.
+              </p>
+            ) : (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Delivery Man</label>
+                <select
+                  value={selectedDeliveryMan}
+                  onChange={(e) => setSelectedDeliveryMan(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 mb-5"
+                >
+                  <option value="">-- Choose delivery man --</option>
+                  {deliveryMen.filter(dm => dm.isActive).map((dm) => (
+                    <option key={dm._id} value={dm._id}>
+                      {dm.name} — {dm.phone}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowAssignModal(false)}
+                    className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-100 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAssignOrder}
+                    disabled={!selectedDeliveryMan || assigning}
+                    className="flex-1 bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {assigning ? (
+                      <><div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> Assigning...</>
+                    ) : (
+                      <><FiUserCheck size={16} /> Assign</>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -32,7 +32,7 @@ const DoctorSidebar = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed md:static top-0 left-0 h-screen w-64 bg-white shadow-lg z-50 transform transition-transform duration-300
+        className={`fixed md:sticky md:top-0 top-0 left-0 h-screen w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 overflow-y-auto
         ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
         {/* Header */}

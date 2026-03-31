@@ -73,7 +73,7 @@ const OrderService = {
    */
   cancelOrder: async (orderId, reason = '') => {
     try {
-      const response = await api.post(`/api/user/order/${orderId}/cancel`, { reason }, {headers:{Authorization: `Bearer ${localStorage.getItem('token')}`}});
+      const response = await api.post(`/api/order/cancel/${orderId}`, { reason }, {headers:{Authorization: `Bearer ${localStorage.getItem('token')}`}});
       return response.data;
     } catch (error) {
       console.error('Failed to cancel order:', error.response?.data);
@@ -156,11 +156,28 @@ const OrderService = {
    */
   requestReturn: async (orderId, reason) => {
     try {
-      const response = await api.post(`/api/user/order/${orderId}/return`, { reason });
+      const response = await api.post(`/api/order/${orderId}/return`, { reason }, {headers:{Authorization: `Bearer ${localStorage.getItem('token')}`}});
       return response.data;
     } catch (error) {
       console.error('Failed to request return:', error.response?.data);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to request return';
+      throw { message: errorMessage, ...error.response?.data };
+    }
+  },
+
+  /**
+   * Request replacement for an order
+   * @param {string} orderId - The order ID
+   * @param {string} reason - Reason for replacement
+   * @returns {Promise} - Response confirming replacement request
+   */
+  requestReplace: async (orderId, reason) => {
+    try {
+      const response = await api.post(`/api/order/${orderId}/replace`, { reason }, {headers:{Authorization: `Bearer ${localStorage.getItem('token')}`}});
+      return response.data;
+    } catch (error) {
+      console.error('Failed to request replacement:', error.response?.data);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to request replacement';
       throw { message: errorMessage, ...error.response?.data };
     }
   },

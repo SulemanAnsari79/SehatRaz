@@ -1,5 +1,7 @@
 import express from 'express';
 import 'dotenv/config';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -17,14 +19,26 @@ import productRouter from './routes/productRoute.js';
 import orderRouter from './routes/orderRoute.js';
 import appointmentRouter from './routes/appointmentRoute.js';
 import recommendationRouter from './routes/recommendationRoute.js';
+import deliveryRouter from './routes/deliveryRoute.js';
+import consultationRouter from './routes/consultationRoute.js';
+import { startAppointmentReminderJob } from './utils/appointmentNotifications.js';
+import { initConsultationSocket } from './socket/consultationSocket.js';
 
 
 // dotenv.config();
 const app= express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 4001;
 
+const io = new Server(httpServer, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+    },
+});
 
-connectDB();
+initConsultationSocket(io);
+
 connectCloudinry();
 
 app.use(express.json());
@@ -48,9 +62,24 @@ app.use('/api/cart',cartRouter);
 app.use('/api/product',productRouter);
 app.use('/api/order',orderRouter);
 app.use('/api/appointment',appointmentRouter);
+app.use('/api/consultation',consultationRouter);
 app.use('/api/recommendation',recommendationRouter);
+app.use('/api/delivery',deliveryRouter);
 
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+    try {
+        await connectDB();
+
+        httpServer.listen(PORT, () => {
+            console.log(`Server is running on http://localhost:${PORT}`);
+        });
+
+        startAppointmentReminderJob();
+    } catch (error) {
+        console.error(`Startup failed: ${error.message}`);
+        process.exit(1);
+    }
+};
+
+startServer();

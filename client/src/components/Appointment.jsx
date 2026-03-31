@@ -20,7 +20,7 @@ const Appointment = () => {
             easily.
           </p>
 
-          <Link to="/bookappointment">
+          <Link to="/doctors">
             <button className="bg-green-500 text-white px-6 py-3 rounded-lg text-lg hover:bg-green-600 transition">
               Book Appointment
             </button>

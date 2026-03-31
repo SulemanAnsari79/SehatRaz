@@ -26,6 +26,37 @@ const AuthService = {
   },
 
   /**
+   * Register a doctor with additional fields
+   * @param {string} name - Doctor's full name
+   * @param {string} email - Doctor's email
+   * @param {string} password - Doctor's password
+   * @param {string} phone - Doctor's phone number
+   * @param {string} specialization - Doctor's specialization
+   * @param {number} experience - Doctor's years of experience
+   * @param {string} qualifications - Doctor's qualifications
+   * @returns {Promise} - Response from server
+   */
+  doctorRegister: async (name, email, password, phone, specialization, experience, qualifications) => {
+    try {
+      const response = await api.post('/api/doctor/register', {
+        name,
+        email,
+        password,
+        phone,
+        specialization,
+        experience,
+        qualifications,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Doctor register error response:', error.response?.data);
+      console.error('Doctor register error status:', error.response?.status);
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      throw { message: errorMessage, ...error.response?.data };
+    }
+  },
+
+  /**
    * Login a user
    * @param {string} email - User's email
    * @param {string} password - User's password
@@ -99,6 +130,105 @@ const AuthService = {
       throw { message: errorMessage };
     }
   },
+  
+  uploadProfileImage: async (imageFile) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const response = await api.post('/api/user/upload-profile-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      return response.data;
+    }
+    catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to upload image';
+      throw { message: errorMessage };
+    }
+  },
+
+  /**
+   * Change user password
+   * @param {string} currentPassword - Current password
+   * @param {string} newPassword - New password
+   * @returns {Promise} - Response from server
+   */
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const response = await api.put('/api/user/change-password', 
+        { currentPassword, newPassword },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      return response.data;
+    }
+    catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to change password';
+      throw { message: errorMessage };
+    }
+  },
+
+  /**
+   * Delete user account
+   * @param {string} password - User password for verification
+   * @returns {Promise} - Response from server
+   */
+  deleteAccount: async (password) => {
+    try {
+      const response = await api.delete('/api/user/delete-account', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        data: { password }
+      });
+      
+      // Clear local storage after successful deletion
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      return response.data;
+    }
+    catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete account';
+      throw { message: errorMessage };
+    }
+  },
+
+  sendForgotPasswordOtp: async (email) => {
+    try {
+      const response = await api.post('/api/user/forgot-password/send-otp', { email });
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to send OTP';
+      throw { message: errorMessage };
+    }
+  },
+
+  verifyForgotPasswordOtp: async (email, otp) => {
+    try {
+      const response = await api.post('/api/user/forgot-password/verify-otp', { email, otp });
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to verify OTP';
+      throw { message: errorMessage };
+    }
+  },
+
+  resetPasswordWithOtp: async (email, newPassword) => {
+    try {
+      const response = await api.post('/api/user/forgot-password/reset-password', { email, newPassword });
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to reset password';
+      throw { message: errorMessage };
+    }
+  }
 };
 
 export default AuthService;

@@ -10,8 +10,13 @@ const AdminSidebar = () => {
     { name: "Dashboard", path: "/admin" },
     { name: "Users", path: "/admin/users" },
     { name: "Doctors", path: "/admin/doctors" },
+    { name: "Appointments", path: "/admin/appointments" },
+    { name: "Leave Requests", path: "/admin/leave-requests" },
     { name: "Products", path: "/admin/products" },
     { name: "Orders", path: "/admin/orders" },
+    { name: "Order Requests", path: "/admin/order-requests" },
+    { name: "Notices", path: "/admin/notices" },
+    { name: "Delivery Men", path: "/admin/delivery-men" },
   ];
 
   return (

@@ -1,8 +1,11 @@
 import axios from "axios";
 
 // Backend base URL
-const API_BASE_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+const TRIMMED_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
+const API_BASE_URL = TRIMMED_BASE_URL.endsWith("/api")
+  ? TRIMMED_BASE_URL
+  : `${TRIMMED_BASE_URL}/api`;
 
 // Create Axios instance
 const api = axios.create({
@@ -18,6 +21,10 @@ const api = axios.create({
 // =========================
 api.interceptors.request.use(
   (config) => {
+    if (typeof config.url === "string" && config.url.startsWith("/api/")) {
+      config.url = config.url.replace(/^\/api\//, "/");
+    }
+
     const token = localStorage.getItem("token");
 
     if (token) {

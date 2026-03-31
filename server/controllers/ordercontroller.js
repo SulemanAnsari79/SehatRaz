@@ -1,51 +1,324 @@
+import crypto from 'crypto';
 import Order from '../models/orderModel.js';
 import User from '../models/userModel.js';
-import Product from '../models/productModel.js';        
+import Product from '../models/productModel.js';
+import nodemailer from 'nodemailer';
+import { getRazorpayInstance, getRazorpayKeyId } from '../config/razorpay.js';
+
+const DELIVERY_FEE = Number(process.env.DELIVERY_FEE || 50);
+
+const validateShippingDetails = (shippingDetails) => {
+    if (!shippingDetails) return 'Shipping details are required';
+
+    const { fullName, email, phone, address, city, state, zip } = shippingDetails;
+
+    if (!fullName || !email || !phone || !address || !city || !state || !zip) {
+        return 'All shipping details are required';
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return 'Invalid email address';
+    }
+
+    if (!/^\d{10}$/.test(String(phone).replace(/\D/g, ''))) {
+        return 'Phone number must be 10 digits';
+    }
+
+    if (!/^\d{5,6}$/.test(String(zip))) {
+        return 'ZIP Code must be 5-6 digits';
+    }
+
+    return null;
+};
+
+const buildSecureOrder = async (items) => {
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        throw new Error('Items are required');
+    }
+
+    const secureItems = [];
+    let computedTotal = 0;
+
+    for (const item of items) {
+        const productId = item.productId;
+        const quantity = Number(item.quantity || 0);
+        const size = item.size || '';
+
+        if (!productId || quantity <= 0) {
+            throw new Error('Invalid item in order');
+        }
+
+        const product = await Product.findById(productId).select('name price stock images category');
+        if (!product) {
+            throw new Error(`Product not found: ${productId}`);
+        }
+
+        if (product.stock < quantity) {
+            throw new Error(`Insufficient stock for ${product.name}`);
+        }
+
+        const safePrice = Number(product.price);
+        const lineTotal = safePrice * quantity;
+
+        secureItems.push({
+            productId: product._id,
+            name: product.name,
+            price: safePrice,
+            quantity,
+            size,
+            image: Array.isArray(product.images) ? product.images[0] : product.images,
+            category: product.category,
+        });
+
+        computedTotal += lineTotal;
+    }
+
+    const totalAmount = computedTotal + DELIVERY_FEE;
+
+    return { secureItems, totalAmount };
+};
+
+const createEmailTransporter = () =>
+    process.env.EMAIL_HOST
+        ? nodemailer.createTransport({
+            host: process.env.EMAIL_HOST,
+            port: Number(process.env.EMAIL_PORT) || 587,
+            secure: process.env.EMAIL_SECURE === 'true',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        })
+        : nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+
+const sendRequestDecisionEmail = async ({
+    order,
+    requestType,
+    decision,
+    adminNotes,
+    previousStatus,
+}) => {
+    const recipientEmail = order?.shippingDetails?.email;
+    if (!recipientEmail) return;
+
+    const customerName = order?.shippingDetails?.fullName || 'Customer';
+    const isApproved = decision === 'Approved';
+    const currentStatus = order?.status;
+
+    const transporter = createEmailTransporter();
+    await transporter.sendMail({
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+        to: recipientEmail,
+        subject: `${requestType} Request ${decision} - SehatRazz`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 10px;">
+                <div style="background-color: #4f46e5; padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
+                    <h1 style="color: white; margin: 0;">SehatRazz</h1>
+                </div>
+                <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <h2 style="color: #111827; margin-top: 0;">${requestType} Request ${decision}</h2>
+                    <p style="color: #4b5563; font-size: 16px;">Dear ${customerName},</p>
+                    <p style="color: #4b5563; font-size: 16px;">Your ${requestType.toLowerCase()} request for order <strong>${order._id}</strong> has been <strong>${decision.toLowerCase()}</strong>.</p>
+                    <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                        <p style="margin: 6px 0; color: #374151;"><strong>Previous Status:</strong> ${previousStatus}</p>
+                        <p style="margin: 6px 0; color: #374151;"><strong>Current Status:</strong> ${currentStatus}</p>
+                        ${isApproved
+                            ? `<p style="margin: 6px 0; color: #374151;">Your order status has been updated to <strong>Processing</strong>.</p>`
+                            : `<p style="margin: 6px 0; color: #374151;">Your order status remains unchanged.</p>`}
+                    </div>
+                    ${adminNotes
+                        ? `<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;"><p style="margin: 0; color: #92400e; font-weight: bold;">Admin Note:</p><p style="margin: 10px 0 0 0; color: #78350f;">${adminNotes}</p></div>`
+                        : ''}
+                    <p style="color: #4b5563; font-size: 16px; margin-top: 20px;">If you need help, please contact SehatRazz support.</p>
+                </div>
+            </div>
+        `,
+    });
+};
 
 export const createOrder = async (req, res) => {
     try {
-        const userId = req.user?.id;
-        const { items, totalAmount } = req.body;
+        const userId = req.user?._id;
+        const { items, paymentMethod, shippingDetails } = req.body;
 
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
 
-        // Validate order data
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ success: false, message: 'Items are required' });
+        if (!paymentMethod) {
+            return res.status(400).json({ success: false, message: 'Payment method is required' });
         }
 
-        if (!totalAmount || totalAmount <= 0) {
-            return res.status(400).json({ success: false, message: 'Valid total amount required' });
+        const shippingValidationError = validateShippingDetails(shippingDetails);
+        if (shippingValidationError) {
+            return res.status(400).json({ success: false, message: shippingValidationError });
         }
 
-        // Verify user exists
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // Create order
+        const { secureItems, totalAmount } = await buildSecureOrder(items);
+
         const order = new Order({
             user: userId,
-            items,
+            items: secureItems,
             totalAmount,
-            status: 'Pending'
+            paymentMethod,
+            paymentStatus: 'Pending',
+            shippingDetails,
+            status: 'Pending',
         });
 
         await order.save();
 
+        user.cart = [];
+        await user.save();
+
         res.status(201).json({ success: true, message: 'Order created successfully', order });
     } catch (error) {
         console.error('Create order error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const createOnlineOrder = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        const { items, shippingDetails } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+
+        const shippingValidationError = validateShippingDetails(shippingDetails);
+        if (shippingValidationError) {
+            return res.status(400).json({ success: false, message: shippingValidationError });
+        }
+
+        const user = await User.findById(userId).select('name email');
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const { secureItems, totalAmount } = await buildSecureOrder(items);
+
+        const razorpay = getRazorpayInstance();
+        const razorpayOrder = await razorpay.orders.create({
+            amount: Math.round(totalAmount * 100),
+            currency: 'INR',
+            receipt: `receipt_${Date.now()}`,
+            notes: { userId: String(userId) },
+        });
+
+        const order = new Order({
+            user: userId,
+            items: secureItems,
+            totalAmount,
+            paymentMethod: 'Razorpay',
+            paymentStatus: 'Pending',
+            shippingDetails,
+            status: 'Pending',
+            razorpayOrderId: razorpayOrder.id,
+        });
+
+        await order.save();
+
+        return res.status(201).json({
+            success: true,
+            message: 'Online payment order created',
+            orderId: order._id,
+            keyId: getRazorpayKeyId(),
+            razorpayOrderId: razorpayOrder.id,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            customer: {
+                name: shippingDetails.fullName || user.name,
+                email: shippingDetails.email || user.email,
+                contact: shippingDetails.phone,
+            },
+        });
+    } catch (error) {
+        console.error('Create online order error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const verifyOnlinePayment = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+        const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+
+        if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return res.status(400).json({ success: false, message: 'Missing payment verification fields' });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (String(order.user) !== String(userId)) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access' });
+        }
+
+        if (!order.razorpayOrderId || order.razorpayOrderId !== razorpay_order_id) {
+            return res.status(400).json({ success: false, message: 'Invalid Razorpay order ID' });
+        }
+
+        if (!process.env.RAZORPAY_KEY_SECRET) {
+            return res.status(500).json({ success: false, message: 'Razorpay secret not configured' });
+        }
+
+        const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(body)
+            .digest('hex');
+
+        const receivedBuffer = Buffer.from(String(razorpay_signature));
+        const expectedBuffer = Buffer.from(String(expectedSignature));
+
+        const isValidSignature =
+            receivedBuffer.length === expectedBuffer.length &&
+            crypto.timingSafeEqual(receivedBuffer, expectedBuffer);
+
+        if (!isValidSignature) {
+            order.paymentStatus = 'Failed';
+            await order.save();
+            return res.status(400).json({ success: false, message: 'Payment signature verification failed' });
+        }
+
+        order.paymentStatus = 'Paid';
+        order.status = 'Processing';
+        order.razorpayPaymentId = razorpay_payment_id;
+        order.razorpaySignature = razorpay_signature;
+        order.paidAt = new Date();
+        await order.save();
+
+        await User.findByIdAndUpdate(userId, { cart: [] });
+
+        return res.status(200).json({ success: true, message: 'Payment verified successfully', order });
+    } catch (error) {
+        console.error('Verify online payment error:', error);
+        return res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };
 
 export const getMyOrders = async (req, res) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user?._id;
 
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -65,7 +338,7 @@ export const getMyOrders = async (req, res) => {
 export const getOrderById = async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.user?.id;
+        const userId = req.user?._id;
 
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -77,8 +350,7 @@ export const getOrderById = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        // Verify ownership
-        if (order.user._id.toString() !== userId) {
+        if (order.user._id.toString() !== userId.toString()) {
             return res.status(403).json({ success: false, message: 'Unauthorized access' });
         }
 
@@ -92,15 +364,38 @@ export const getOrderById = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, paymentStatus, notes } = req.body;
 
-        if (!['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].includes(status)) {
-            return res.status(400).json({ success: false, message: 'Invalid status' });
+        const updateData = {};
+        let sendEmail = false;
+
+        if (status) {
+            if (!['Pending', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'].includes(status)) {
+                return res.status(400).json({ success: false, message: 'Invalid order status' });
+            }
+            updateData.status = status;
+            if (status === 'Delivered') {
+                const deliveredAt = new Date();
+                updateData.deliveredAt = deliveredAt;
+                updateData.returnDeadlineDate = new Date(deliveredAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+            }
+            sendEmail = true;
+        }
+
+        if (paymentStatus) {
+            if (!['Pending', 'Paid', 'Failed'].includes(paymentStatus)) {
+                return res.status(400).json({ success: false, message: 'Invalid payment status' });
+            }
+            updateData.paymentStatus = paymentStatus;
+        }
+
+        if (notes !== undefined) {
+            updateData.notes = notes;
         }
 
         const order = await Order.findByIdAndUpdate(
             id,
-            { status },
+            updateData,
             { new: true }
         ).populate('user', '-password');
 
@@ -108,7 +403,77 @@ export const updateOrderStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        res.status(200).json({ success: true, message: 'Order status updated', order });
+        if (sendEmail && order.shippingDetails && order.shippingDetails.email) {
+            try {
+                const transporter = process.env.EMAIL_HOST
+                    ? nodemailer.createTransport({
+                        host: process.env.EMAIL_HOST,
+                        port: Number(process.env.EMAIL_PORT) || 587,
+                        secure: process.env.EMAIL_SECURE === 'true',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS,
+                        },
+                    })
+                    : nodemailer.createTransport({
+                        service: 'gmail',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS,
+                        },
+                    });
+
+                const statusColors = {
+                    Pending: '#f97316',
+                    Processing: '#eab308',
+                    Shipped: '#3b82f6',
+                    Delivered: '#22c55e',
+                    Cancelled: '#ef4444',
+                };
+
+                await transporter.sendMail({
+                    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+                    to: order.shippingDetails.email,
+                    subject: 'Order Status Update - SehatRazz',
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 10px;">
+                            <div style="background-color: #4f46e5; padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
+                                <h1 style="color: white; margin: 0;">SehatRazz</h1>
+                            </div>
+                            <div style="background-color: white; padding: 30px; border-radius: 0 0 10px 10px;">
+                                <h2 style="color: #111827; margin-top: 0;">Order Status Update</h2>
+                                <p style="color: #4b5563; font-size: 16px;">Dear ${order.shippingDetails.fullName},</p>
+                                <p style="color: #4b5563; font-size: 16px;">Your order has been updated:</p>
+                                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 5px 0; color: #6b7280;"><strong>Order ID:</strong> ${order._id}</p>
+                                    <p style="margin: 5px 0; color: #6b7280;"><strong>Total Amount:</strong> ₹${order.totalAmount}</p>
+                                    <p style="margin: 5px 0; color: #6b7280;">
+                                        <strong>Status:</strong>
+                                        <span style="background-color: ${statusColors[status] || '#6b7280'}; color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold;">
+                                            ${status}
+                                        </span>
+                                    </p>
+                                </div>
+                                ${notes ? `
+                                    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                                        <p style="margin: 0; color: #92400e; font-weight: bold;">Note from SehatRazz:</p>
+                                        <p style="margin: 10px 0 0 0; color: #78350f;">${notes}</p>
+                                    </div>
+                                ` : ''}
+                                <p style="color: #4b5563; font-size: 16px; margin-top: 20px;">Thank you for shopping with us!</p>
+                                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+                                    <p style="color: #9ca3af; font-size: 14px; margin: 0;">© 2026 SehatRazz. All rights reserved.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                });
+            } catch (emailError) {
+                console.error('Failed to send email notification:', emailError);
+            }
+        }
+
+        return res.status(200).json({ success: true, message: 'Order updated successfully', order });
     } catch (error) {
         console.error('Update order error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -118,7 +483,8 @@ export const updateOrderStatus = async (req, res) => {
 export const cancelOrder = async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.user?.id;
+        const userId = req.user?._id;
+        const { reason } = req.body;
 
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -130,21 +496,298 @@ export const cancelOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        // Verify ownership
-        if (order.user.toString() !== userId) {
+        if (String(order.user) !== String(userId)) {
             return res.status(403).json({ success: false, message: 'Unauthorized access' });
         }
 
-        if (['Shipped', 'Delivered'].includes(order.status)) {
-            return res.status(400).json({ success: false, message: 'Cannot cancel order in this status' });
+        if (!['Pending', 'Processing'].includes(order.status)) {
+            return res.status(400).json({ success: false, message: `Cannot cancel order with status: ${order.status}` });
         }
 
         order.status = 'Cancelled';
+        order.cancelReason = reason || 'User requested cancellation';
         await order.save();
 
-        res.status(200).json({ success: true, message: 'Order cancelled', order });
+        return res.status(200).json({ success: true, message: 'Order cancelled successfully', order });
     } catch (error) {
         console.error('Cancel order error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const getAllOrders = async (req, res) => {
+    const orders = await Order.find().populate('user');
+    return res.json({ success: true, orders });
+};
+
+export const requestReturn = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?._id;
+        const { reason } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+
+        if (!reason || reason.trim() === '') {
+            return res.status(400).json({ success: false, message: 'Return reason is required' });
+        }
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (String(order.user) !== String(userId)) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access' });
+        }
+
+        if (order.status !== 'Delivered') {
+            return res.status(400).json({ success: false, message: 'Only delivered orders can be returned' });
+        }
+
+        const returnDeadline = order.returnDeadlineDate || new Date(order.deliveredAt?.getTime() + 7 * 24 * 60 * 60 * 1000);
+        if (new Date() > returnDeadline) {
+            return res.status(400).json({ success: false, message: 'Return window has expired (7 days from delivery)' });
+        }
+
+        order.returnRequest = {
+            status: 'Requested',
+            reason: reason,
+            requestDate: new Date()
+        };
+        await order.save();
+
+        return res.status(200).json({ success: true, message: 'Return request submitted', order });
+    } catch (error) {
+        console.error('Request return error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const requestReplace = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user?._id;
+        const { reason } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+
+        if (!reason || reason.trim() === '') {
+            return res.status(400).json({ success: false, message: 'Replacement reason is required' });
+        }
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (String(order.user) !== String(userId)) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access' });
+        }
+
+        if (order.status !== 'Delivered') {
+            return res.status(400).json({ success: false, message: 'Only delivered orders can be replaced' });
+        }
+
+        const replaceDeadline = order.returnDeadlineDate || new Date(order.deliveredAt?.getTime() + 7 * 24 * 60 * 60 * 1000);
+        if (new Date() > replaceDeadline) {
+            return res.status(400).json({ success: false, message: 'Replacement window has expired (7 days from delivery)' });
+        }
+
+        order.replaceRequest = {
+            status: 'Requested',
+            reason: reason,
+            requestDate: new Date()
+        };
+        await order.save();
+
+        return res.status(200).json({ success: true, message: 'Replacement request submitted', order });
+    } catch (error) {
+        console.error('Request replace error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const approveReturn = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { adminNotes } = req.body;
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (!order.returnRequest || order.returnRequest.status !== 'Requested') {
+            return res.status(400).json({ success: false, message: 'No pending return request' });
+        }
+
+        const previousStatus = order.status;
+
+        order.returnRequest = {
+            ...order.returnRequest,
+            status: 'Approved',
+            approvalDate: new Date(),
+            adminNotes: adminNotes || ''
+        };
+        order.status = 'Processing';
+        await order.save();
+
+        try {
+            await sendRequestDecisionEmail({
+                order,
+                requestType: 'Return',
+                decision: 'Approved',
+                adminNotes: adminNotes || '',
+                previousStatus,
+            });
+        } catch (emailError) {
+            console.error('Failed to send return approval email:', emailError);
+        }
+
+        return res.status(200).json({ success: true, message: 'Return request approved and order moved to Processing', order });
+    } catch (error) {
+        console.error('Approve return error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const rejectReturn = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { adminNotes } = req.body;
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (!order.returnRequest || order.returnRequest.status !== 'Requested') {
+            return res.status(400).json({ success: false, message: 'No pending return request' });
+        }
+
+        const previousStatus = order.status;
+
+        order.returnRequest = {
+            ...order.returnRequest,
+            status: 'Rejected',
+            approvalDate: new Date(),
+            adminNotes: adminNotes || ''
+        };
+        await order.save();
+
+        try {
+            await sendRequestDecisionEmail({
+                order,
+                requestType: 'Return',
+                decision: 'Rejected',
+                adminNotes: adminNotes || '',
+                previousStatus,
+            });
+        } catch (emailError) {
+            console.error('Failed to send return rejection email:', emailError);
+        }
+
+        return res.status(200).json({ success: true, message: 'Return request rejected', order });
+    } catch (error) {
+        console.error('Reject return error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const approveReplace = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { adminNotes } = req.body;
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (!order.replaceRequest || order.replaceRequest.status !== 'Requested') {
+            return res.status(400).json({ success: false, message: 'No pending replacement request' });
+        }
+
+        const previousStatus = order.status;
+
+        order.replaceRequest = {
+            ...order.replaceRequest,
+            status: 'Approved',
+            approvalDate: new Date(),
+            adminNotes: adminNotes || ''
+        };
+        order.status = 'Processing';
+        await order.save();
+
+        try {
+            await sendRequestDecisionEmail({
+                order,
+                requestType: 'Exchange',
+                decision: 'Approved',
+                adminNotes: adminNotes || '',
+                previousStatus,
+            });
+        } catch (emailError) {
+            console.error('Failed to send exchange approval email:', emailError);
+        }
+
+        return res.status(200).json({ success: true, message: 'Replacement request approved and order moved to Processing', order });
+    } catch (error) {
+        console.error('Approve replace error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const rejectReplace = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { adminNotes } = req.body;
+
+        const order = await Order.findById(id);
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (!order.replaceRequest || order.replaceRequest.status !== 'Requested') {
+            return res.status(400).json({ success: false, message: 'No pending replacement request' });
+        }
+
+        const previousStatus = order.status;
+
+        order.replaceRequest = {
+            ...order.replaceRequest,
+            status: 'Rejected',
+            approvalDate: new Date(),
+            adminNotes: adminNotes || ''
+        };
+        await order.save();
+
+        try {
+            await sendRequestDecisionEmail({
+                order,
+                requestType: 'Exchange',
+                decision: 'Rejected',
+                adminNotes: adminNotes || '',
+                previousStatus,
+            });
+        } catch (emailError) {
+            console.error('Failed to send exchange rejection email:', emailError);
+        }
+
+        return res.status(200).json({ success: true, message: 'Replacement request rejected', order });
+    } catch (error) {
+        console.error('Reject replace error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getStats, getUsers } from "../../services/AdminService.js";
+import { useNavigate } from "react-router-dom";
+import { getOrders, getStats, getUsers } from "../../services/AdminService.js";
 import StatCard from "../../components/StatCard";
 import { FiUsers, FiDollarSign, FiShoppingCart, FiCalendar, FiTrendingUp, FiLoader } from "react-icons/fi";
 
@@ -7,14 +8,17 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalDoctors: 0,
+    pendingDoctors: 0,
     totalOrders: 0,
     totalRevenue: 0,
     totalAppointments: 0,
     pendingAppointments: 0,
   });
   const [recentUsers, setRecentUsers] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -22,16 +26,38 @@ const AdminDashboard = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch stats from backend
-        const statsResponse = await getStats();
-        if (statsResponse?.data) {
-          setStats(statsResponse.data);
+        const [statsResult, usersResult, ordersResult] = await Promise.allSettled([
+          getStats(),
+          getUsers(),
+          getOrders(),
+        ]);
+
+        if (statsResult.status === "fulfilled" && statsResult.value?.data) {
+          setStats(statsResult.value.data);
         }
 
-        // Fetch recent users
-        const usersResponse = await getUsers();
-        if (usersResponse?.data) {
-          setRecentUsers(usersResponse.data.slice(0, 5));
+        if (usersResult.status === "fulfilled" && Array.isArray(usersResult.value?.data)) {
+          const latestUsers = [...usersResult.value.data]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 5);
+          setRecentUsers(latestUsers);
+        }
+
+        if (
+          ordersResult.status === "fulfilled" &&
+          Array.isArray(ordersResult.value?.data?.orders)
+        ) {
+          const pendingCount = ordersResult.value.data.orders.filter(
+            (order) => order.status?.toLowerCase() === "pending"
+          ).length;
+          setPendingOrders(pendingCount);
+        }
+
+        const failedRequests = [statsResult, usersResult, ordersResult].filter(
+          (result) => result.status === "rejected"
+        );
+        if (failedRequests.length > 0) {
+          setError("Some dashboard data could not be loaded. Please refresh.");
         }
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load dashboard data");
@@ -87,6 +113,14 @@ const AdminDashboard = () => {
           bgColor="bg-green-50"
           iconColor="text-green-600"
           trend="+8.2%"
+        />
+        <StatCard
+          title="Pending Doctors"
+          value={stats.pendingDoctors || 0}
+          icon={<FiUsers />}
+          bgColor="bg-amber-50"
+          iconColor="text-amber-600"
+          trend=""
         />
         <StatCard
           title="Total Orders"
@@ -147,12 +181,20 @@ const AdminDashboard = () => {
                       <td className="px-6 py-4 text-sm text-gray-900 font-medium">{user.name}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Active
-                        </span>
+                        {user.isActive ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Inactive
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {user.createdAt
+                          ? new Date(user.createdAt).toLocaleDateString("en-GB")
+                          : "-"}
                       </td>
                     </tr>
                   ))
@@ -172,17 +214,47 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <button className="w-full px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button
+              onClick={() => navigate("/admin/users")}
+              className="w-full px-4 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
               Manage Users
             </button>
-            <button className="w-full px-4 py-3 bg-linear-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button
+              onClick={() => navigate("/admin/doctors")}
+              className="w-full px-4 py-3 bg-linear-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
               Manage Doctors
             </button>
-            <button className="w-full px-4 py-3 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button
+              onClick={() => navigate("/admin/orders")}
+              className="w-full px-4 py-3 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
               Manage Orders
             </button>
-            <button className="w-full px-4 py-3 bg-linear-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition">
+            <button
+              onClick={() => navigate("/admin/products")}
+              className="w-full px-4 py-3 bg-linear-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
               Manage Products
+            </button>
+            <button
+              onClick={() => navigate("/admin/order-requests")}
+              className="w-full px-4 py-3 bg-linear-to-r from-teal-500 to-teal-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
+              Manage Order Requests
+            </button>
+            <button
+              onClick={() => navigate("/admin/delivery-men")}
+              className="w-full px-4 py-3 bg-linear-to-r from-amber-500 to-amber-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
+              Manage Delivery Men
+            </button>
+            <button
+              onClick={() => navigate("/admin/notices")}
+              className="w-full px-4 py-3 bg-linear-to-r from-cyan-500 to-cyan-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
+              Send Notices
             </button>
           </div>
 
@@ -200,7 +272,7 @@ const AdminDashboard = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Pending Orders:</span>
-                <span className="font-medium text-gray-900">{stats.totalOrders}</span>
+                <span className="font-medium text-gray-900">{pendingOrders}</span>
               </div>
             </div>
           </div>
