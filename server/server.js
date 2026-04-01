@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 4001;
 
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: "http://localhost:10000",
         methods: ["GET", "POST"],
     },
 });
@@ -42,7 +42,7 @@ initConsultationSocket(io);
 connectCloudinry();
 
 app.use(express.json());
-app.use(cors({origin: "http://localhost:5173", credentials: true}));//, limiter:true
+app.use(cors({origin: "http://localhost:10000", credentials: true}));//, limiter:true
 // app.use(limiter);
 app.use(helmet());
 app.use(cookieParser());
