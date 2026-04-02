@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const API = axios.create({baseURL: "http://localhost:4000/api"}); 
+const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+const TRIMMED_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
+const API_BASE_URL = TRIMMED_BASE_URL.endsWith("/api")
+	? TRIMMED_BASE_URL
+	: `${TRIMMED_BASE_URL}/api`;
+
+const API = axios.create({ baseURL: API_BASE_URL }); 
 
 // Statistics
 export const getStats = () => API.get("/admin/stats",{headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}});

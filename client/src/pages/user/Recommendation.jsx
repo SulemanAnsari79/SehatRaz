@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/Api.js';
 
 const questions = [
   {
@@ -178,7 +178,12 @@ const Recommendation = () => {
       formData.append('answers', JSON.stringify(answers));
 
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:4000/api/recommendation/ai-recommend',formData,{headers: {'Authorization': `Bearer ${token}`,'Content-Type': 'multipart/form-data'}});
+      const response = await api.post('/recommendation/ai-recommend', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       if (response.data.success) {
         setRecommendations(response.data.recommendations);

@@ -30,9 +30,37 @@ const app= express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 4001;
 
+const getAllowedOrigins = () => {
+    const configuredOrigins = [
+        process.env.CORS_ORIGIN,
+        process.env.CLIENT_URL,
+        process.env.FRONTEND_URL,
+    ]
+        .filter(Boolean)
+        .flatMap((value) => value.split(','))
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+    if (process.env.NODE_ENV !== 'production') {
+        configuredOrigins.push(
+            'http://localhost:5173',
+            'http://localhost:4173',
+            'http://localhost:3000',
+            'http://localhost:10000',
+            'http://127.0.0.1:5173',
+            'http://127.0.0.1:3000'
+        );
+    }
+
+    return [...new Set(configuredOrigins)];
+};
+
+const allowedOrigins = getAllowedOrigins();
+const corsOrigin = allowedOrigins.length > 0 ? allowedOrigins : true;
+
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:10000",
+        origin: corsOrigin,
         methods: ["GET", "POST"],
     },
 });
@@ -42,7 +70,7 @@ initConsultationSocket(io);
 connectCloudinry();
 
 app.use(express.json());
-app.use(cors({origin: "http://localhost:10000", credentials: true}));//, limiter:true
+app.use(cors({ origin: corsOrigin, credentials: true }));//, limiter:true
 // app.use(limiter);
 app.use(helmet());
 app.use(cookieParser());
