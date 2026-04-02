@@ -26,6 +26,7 @@ const Checkout = () => {
   const { user, token, cartItems, products, delivery_fee, currency, backendUrl, clearCart } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const normalizedBackendUrl = backendUrl.replace(/\/+$/, '');
 
   const [shipping, setShipping] = useState({
     fullName: user?.name || "",
@@ -147,7 +148,7 @@ const Checkout = () => {
     try {
       if (paymentMethod === "cod") {
         const response = await axios.post(
-          backendUrl + "/api/order/placeorder",
+          `${normalizedBackendUrl}/api/order/placeorder`,
           {
             items: orderItems,
             paymentMethod: "Cash On Delivery",
@@ -176,7 +177,7 @@ const Checkout = () => {
       }
 
       const createPaymentOrder = await axios.post(
-        backendUrl + "/api/order/create-online-order",
+        `${normalizedBackendUrl}/api/order/create-online-order`,
         {
           items: orderItems,
           shippingDetails: shipping,
@@ -212,7 +213,7 @@ const Checkout = () => {
         handler: async function (rzpResponse) {
           try {
             const verify = await axios.post(
-              backendUrl + "/api/order/verify-online-payment",
+              `${normalizedBackendUrl}/api/order/verify-online-payment`,
               {
                 orderId: paymentOrder.orderId,
                 razorpay_order_id: rzpResponse.razorpay_order_id,

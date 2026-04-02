@@ -35,6 +35,7 @@ const AuthProvider = ({ children }) => {
   const backendUrl =
     import.meta.env.VITE_BACKEND_URL ||
     (import.meta.env.DEV ? 'http://localhost:4000' : '');
+  const normalizedBackendUrl = backendUrl.replace(/\/+$/, '');
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -94,7 +95,7 @@ const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const response = await axios.post(
-          backendUrl + "/api/cart/add",
+          `${normalizedBackendUrl}/api/cart/add`,
           { productId, quantity: 1, size },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -145,7 +146,7 @@ const AuthProvider = ({ children }) => {
     setCartItems(prev => ({...prev,[productId]: {...(prev[productId] || {}),[size]: quantity}}));
     if (token) {
       try {
-        await axios.post(backendUrl + '/api/cart/update',{ productId, size, quantity },{ headers: { Authorization: `Bearer ${token}` } });
+        await axios.post(`${normalizedBackendUrl}/api/cart/update`,{ productId, size, quantity },{ headers: { Authorization: `Bearer ${token}` } });
       } catch (error) {
         console.error(error);
         toast.error(error.message);
@@ -155,7 +156,7 @@ const AuthProvider = ({ children }) => {
 
   const getProductData = useCallback(async () => { 
     try {
-      const response = await axios.get(backendUrl + '/api/product/list');
+      const response = await axios.get(`${normalizedBackendUrl}/api/product/list`);
       if (response.data.success) {
         setProducts(response.data.products);
       } else {
@@ -171,7 +172,7 @@ const AuthProvider = ({ children }) => {
 
   const getUserCart = useCallback(async (token) => {
     try {
-      const response = await axios.post(backendUrl + '/api/cart/getUserCart', {}, { headers:  {Authorization: `Bearer ${token}` } });
+      const response = await axios.post(`${normalizedBackendUrl}/api/cart/getUserCart`, {}, { headers:  {Authorization: `Bearer ${token}` } });
 
       if (response.data.success) {
         // Transform backend cart array to frontend nested structure
@@ -209,7 +210,7 @@ const AuthProvider = ({ children }) => {
     setCartItems({});
     if (token) {
       try {
-        await axios.post(backendUrl + '/api/cart/clear', {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.post(`${normalizedBackendUrl}/api/cart/clear`, {}, { headers: { Authorization: `Bearer ${token}` } });
       } catch (error) {
         console.error('Failed to clear cart:', error);
       }
