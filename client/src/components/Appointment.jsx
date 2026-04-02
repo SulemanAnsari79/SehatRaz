@@ -31,7 +31,7 @@ const Appointment = () => {
         {/* Right Side - Content */}
         <div>
           <img
-            src="/appointment.jpg"
+            src="https://via.placeholder.com/600x400?text=Book+Appointment"
             alt="Book Doctor Appointment"
             className="w-full rounded-xl shadow-lg"
           />

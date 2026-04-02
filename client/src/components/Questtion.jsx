@@ -10,7 +10,7 @@ const Question = () => {
         {/* Left Side - Image */}
         <div>
           <img
-            src="/question.jpg"
+            src="https://via.placeholder.com/600x400?text=Find+Products"
             alt="Answer Questions"
             className="w-full rounded-xl shadow-lg"
           />

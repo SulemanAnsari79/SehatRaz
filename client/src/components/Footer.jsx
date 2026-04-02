@@ -9,7 +9,7 @@ const Footer = () => {
         {/* Column 1 - Logo */}
         <div>
           <img 
-            src="/logo.png" 
+            src="https://via.placeholder.com/150x50?text=Sehatraz" 
             alt="Sehatraz Logo" 
             className="w-40 mb-3"
           />

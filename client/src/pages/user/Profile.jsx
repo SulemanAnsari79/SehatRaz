@@ -14,9 +14,9 @@ const Profile = () => {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [profileImage, setProfileImage] = useState("/user.png");
+  const [profileImage, setProfileImage] = useState("https://via.placeholder.com/150x150?text=User");
   const [imageFile, setImageFile] = useState(null);
-  const [previewImage, setPreviewImage] = useState("/user.png");
+  const [previewImage, setPreviewImage] = useState("https://via.placeholder.com/150x150?text=User");
   const [imageUploading, setImageUploading] = useState(false);
   
   // Settings state
