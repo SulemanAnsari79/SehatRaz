@@ -32,9 +32,7 @@ const PORT = process.env.PORT || 4001;
 
 const getAllowedOrigins = () => {
     const configuredOrigins = [
-        process.env.CORS_ORIGIN,
-        process.env.CLIENT_URL,
-        process.env.FRONTEND_URL,
+        process.env.CORS_ORIGIN
     ]
         .filter(Boolean)
         .flatMap((value) => value.split(','))

@@ -32,7 +32,9 @@ const AuthProvider = ({ children }) => {
 
   const currency = 'INR';
   const delivery_fee = 50;
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL ||
+    (import.meta.env.DEV ? 'http://localhost:4000' : '');
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);

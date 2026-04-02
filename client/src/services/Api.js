@@ -1,7 +1,13 @@
 import axios from "axios";
 
 // Backend base URL
-const RAW_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+const RAW_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? "http://localhost:4000" : "");
+
+if (!RAW_BASE_URL && import.meta.env.PROD) {
+  console.error("Missing VITE_BACKEND_URL in production environment.");
+}
 const TRIMMED_BASE_URL = RAW_BASE_URL.replace(/\/+$/, "");
 const API_BASE_URL = TRIMMED_BASE_URL.endsWith("/api")
   ? TRIMMED_BASE_URL
