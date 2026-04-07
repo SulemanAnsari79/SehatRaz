@@ -26,7 +26,7 @@ const auth = async (req,res,next)=>{
         }
         req.user = user;
       } else if (decodedToken.role === "doctor") {
-        const doctor = await Doctor.findById(decodedToken._id);
+          const doctor = await Doctor.findById(decodedToken.id || decodedToken._id);
         if(!doctor){
           return res.status(401).json({success:false, message:"Doctor not found"});
         }
