@@ -2,6 +2,9 @@ import express from 'express';
 import 'dotenv/config';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { existsSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import cors from 'cors';
 import connectDB from './config/db.js';
@@ -29,6 +32,11 @@ import { initConsultationSocket } from './socket/consultationSocket.js';
 const app= express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 4001;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDistPath = path.resolve(__dirname, '../client/dist');
+const clientIndexPath = path.join(clientDistPath, 'index.html');
+const hasClientBuild = existsSync(clientIndexPath);
 
 const getAllowedOrigins = () => {
     const configuredOrigins = [
@@ -73,10 +81,19 @@ app.use(cors({ origin: corsOrigin, credentials: true }));//, limiter:true
 app.use(helmet());
 app.use(cookieParser());
 
+if (hasClientBuild) {
+    app.use(express.static(clientDistPath));
+}
+
 // Serve static files from uploads directory (for backward compatibility)
 // app.use('/uploads', express.static('uploads'));
 
 app.get('/', (req, res) => {
+    if (hasClientBuild) {
+        res.sendFile(clientIndexPath);
+        return;
+    }
+
     res.send('Server is running successfully');
 });
 
@@ -91,6 +108,12 @@ app.use('/api/appointment',appointmentRouter);
 app.use('/api/consultation',consultationRouter);
 app.use('/api/recommendation',recommendationRouter);
 app.use('/api/delivery',deliveryRouter);
+
+if (hasClientBuild) {
+    app.get(/^\/(?!api\/).*/, (req, res) => {
+        res.sendFile(clientIndexPath);
+    });
+}
 
 
 const startServer = async () => {
