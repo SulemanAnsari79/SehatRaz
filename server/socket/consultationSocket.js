@@ -96,7 +96,7 @@ export const initConsultationSocket = (io) => {
         auth.session.lastActivityAt = new Date();
         await auth.session.save();
 
-        socket.to(room).emit("consultation:participant-joined", auth.participant);
+        io.to(room).emit("consultation:participant-joined", auth.participant);
         ack?.({ success: true, participant: auth.participant, roomId: auth.session.roomId });
       } catch (error) {
         ack?.({ success: false, message: "Failed to join room" });

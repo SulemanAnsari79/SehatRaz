@@ -92,6 +92,8 @@ const normalizeMessage = (msg) => ({
   sentAt: msg.sentAt,
 });
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
 export const getConsultationSession = async (req, res) => {
   try {
     const { appointmentId } = req.params;
@@ -124,9 +126,12 @@ export const getConsultationSession = async (req, res) => {
     const { joinWindowStart, joinWindowEnd } = getJoinWindow(appointment);
 
     const now = new Date();
-    const canJoinNow = now >= joinWindowStart && now <= joinWindowEnd;
+    const canJoinNow = appointment.consultationStatus === "live" || (now >= joinWindowStart && now <= joinWindowEnd);
 
-    const recentMessages = await ChatMessage.find({ appointment: appointment._id })
+    const recentMessages = await ChatMessage.find({
+      appointment: appointment._id,
+      sentAt: { $gte: new Date(Date.now() - THIRTY_DAYS_MS) },
+    })
       .sort({ sentAt: -1 })
       .limit(50);
 
@@ -143,6 +148,8 @@ export const getConsultationSession = async (req, res) => {
         time: appointment.time,
         user: appointment.user,
         doctor: appointment.doctor,
+        prescription: session.prescription || "",
+        prescriptionUpdatedAt: session.prescriptionUpdatedAt,
         canJoinNow,
         joinWindowStart,
         joinWindowEnd,
@@ -223,6 +230,41 @@ export const endConsultationSession = async (req, res) => {
     return res.status(200).json({ success: true, message: "Consultation session ended", session });
   } catch (error) {
     console.error("End consultation session error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const saveConsultationPrescription = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { role, userId } = getRoleAndIdFromToken(req);
+    const prescription = String(req.body?.prescription || "").trim();
+
+    if (role !== "doctor") {
+      return res.status(403).json({ success: false, message: "Only doctor can update prescription" });
+    }
+
+    const appointment = await Appointment.findById(appointmentId).populate("doctor", "name");
+    if (!appointment) return res.status(404).json({ success: false, message: "Appointment not found" });
+
+    if (String(appointment.doctor?._id || appointment.doctor) !== userId) {
+      return res.status(403).json({ success: false, message: "Unauthorized consultation access" });
+    }
+
+    const session = await ensureSessionForAppointment(appointment);
+    session.prescription = prescription;
+    session.prescriptionUpdatedAt = prescription ? new Date() : null;
+    session.lastActivityAt = new Date();
+    await session.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Prescription saved",
+      prescription: session.prescription,
+      prescriptionUpdatedAt: session.prescriptionUpdatedAt,
+    });
+  } catch (error) {
+    console.error("Save consultation prescription error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

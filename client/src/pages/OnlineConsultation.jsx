@@ -7,6 +7,7 @@ import {
   createConsultationSocket,
   endConsultationSession,
   getConsultationSession,
+  saveConsultationPrescription,
   startConsultationSession,
 } from "../services/ConsultationService.js";
 
@@ -27,6 +28,8 @@ const OnlineConsultation = () => {
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
+  const [prescriptionInput, setPrescriptionInput] = useState("");
+  const [prescriptionSaving, setPrescriptionSaving] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
   const [remoteConnected, setRemoteConnected] = useState(false);
@@ -121,15 +124,24 @@ const OnlineConsultation = () => {
       setLoading(true);
       const response = await getConsultationSession(appointmentId);
       const payload = response?.data;
-      setSession(payload?.session || null);
-      setMessages(payload?.messages || []);
+      let nextSession = payload?.session || null;
 
-      if (!payload?.session?.canJoinNow) {
-        toast.info("Consultation join window is not open yet.");
+      if (role === "doctor" && nextSession && nextSession.consultationStatus !== "live") {
+        const startResponse = await startConsultationSession(appointmentId);
+        nextSession = {
+          ...nextSession,
+          ...(startResponse?.data?.session || {}),
+          consultationStatus: "live",
+          canJoinNow: true,
+        };
       }
 
-      if (role === "doctor" && payload?.session?.consultationStatus !== "live") {
-        await startConsultationSession(appointmentId);
+      setSession(nextSession);
+      setMessages(payload?.messages || []);
+      setPrescriptionInput(nextSession?.prescription || "");
+
+      if (role !== "doctor" && !nextSession?.canJoinNow && nextSession?.consultationStatus !== "live") {
+        toast.info("Consultation join window is not open yet.");
       }
 
       await setupPeerConnection();
@@ -197,6 +209,29 @@ const OnlineConsultation = () => {
     navigate(-1);
   };
 
+  const handleSavePrescription = async () => {
+    if (role !== "doctor") return;
+
+    try {
+      setPrescriptionSaving(true);
+      const response = await saveConsultationPrescription(appointmentId, prescriptionInput);
+      setSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              prescription: response?.data?.prescription ?? prescriptionInput,
+              prescriptionUpdatedAt: response?.data?.prescriptionUpdatedAt || new Date().toISOString(),
+            }
+          : prev
+      );
+      toast.success("Prescription saved");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to save prescription");
+    } finally {
+      setPrescriptionSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
@@ -214,6 +249,45 @@ const OnlineConsultation = () => {
           <div className="rounded-xl bg-slate-800 p-3">
             <p className="text-sm text-slate-300">Appointment #{appointmentId}</p>
             <p className="font-semibold">{session?.doctor?.name ? `Dr. ${session.doctor.name}` : "Doctor"} Consultation</p>
+          </div>
+
+          <div className="rounded-xl bg-slate-800 border border-slate-700 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold">Prescription</p>
+                <p className="text-xs text-slate-400">Saved with the consultation and visible later from this page.</p>
+              </div>
+              {session?.prescriptionUpdatedAt ? (
+                <span className="text-[11px] text-slate-400">
+                  Updated {new Date(session.prescriptionUpdatedAt).toLocaleString()}
+                </span>
+              ) : null}
+            </div>
+
+            {role === "doctor" ? (
+              <div className="space-y-3">
+                <textarea
+                  value={prescriptionInput}
+                  onChange={(e) => setPrescriptionInput(e.target.value)}
+                  placeholder="Write the prescription, dosage, and follow-up notes here..."
+                  rows={6}
+                  className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm outline-none focus:border-cyan-500 resize-y"
+                />
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleSavePrescription}
+                    disabled={prescriptionSaving}
+                    className="rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 px-4 py-2 text-sm font-semibold"
+                  >
+                    {prescriptionSaving ? "Saving..." : "Save Prescription"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 min-h-[120px] text-sm text-slate-100 whitespace-pre-wrap">
+                {session?.prescription?.trim() ? session.prescription : "No prescription has been added yet."}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,6 +318,7 @@ const OnlineConsultation = () => {
         <div className="rounded-xl bg-slate-800 border border-slate-700 flex flex-col h-[75vh]">
           <div className="p-3 border-b border-slate-700">
             <p className="font-semibold">Consultation Chat</p>
+            <p className="text-xs text-slate-400">Chat is retained for 30 days.</p>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-2">

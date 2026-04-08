@@ -17,6 +17,9 @@ export const startConsultationSession = (appointmentId) =>
 export const endConsultationSession = (appointmentId) =>
   api.post(`/consultation/appointment/${appointmentId}/end`);
 
+export const saveConsultationPrescription = (appointmentId, prescription) =>
+  api.post(`/consultation/appointment/${appointmentId}/prescription`, { prescription });
+
 export const createConsultationSocket = () => {
   const token = localStorage.getItem("token");
   return io(getSocketBaseUrl(), {

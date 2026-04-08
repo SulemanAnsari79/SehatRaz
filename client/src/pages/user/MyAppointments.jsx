@@ -146,12 +146,12 @@ const MyAppointments = () => {
                           ) : null}
                         </div>
 
-                      {appointment.mode === "online" && appointment.status === "Booked" ? (
+                      {appointment.mode === "online" ? (
                         <button
                           onClick={() => navigate(`/consultation/${appointment._id}`)}
                           className="col-span-2 inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 transition"
                         >
-                          Join Online Consultation
+                          {appointment.status === "Booked" ? "Join Online Consultation" : "View Consultation"}
                         </button>
                       ) : null}
                     </div>

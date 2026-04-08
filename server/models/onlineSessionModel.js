@@ -13,6 +13,8 @@ const onlineSessionSchema = new mongoose.Schema(
     endedAt: { type: Date, default: null },
     endedBy: { type: String, enum: ["doctor", "user", "system", ""], default: "" },
     lastActivityAt: { type: Date, default: null },
+    prescription: { type: String, default: "" },
+    prescriptionUpdatedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

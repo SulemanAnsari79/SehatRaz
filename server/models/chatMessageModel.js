@@ -9,7 +9,7 @@ const chatMessageSchema = new mongoose.Schema(
     senderName: { type: String, default: "" },
     messageType: { type: String, enum: ["text", "system"], default: "text" },
     content: { type: String, required: true, trim: true, maxlength: 2000 },
-    sentAt: { type: Date, default: Date.now },
+    sentAt: { type: Date, default: Date.now, expires: 60 * 60 * 24 * 30 },
   },
   { timestamps: true }
 );
