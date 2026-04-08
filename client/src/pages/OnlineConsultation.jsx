@@ -13,6 +13,20 @@ import {
 
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
+const attachStreamToVideo = async (videoElement, stream) => {
+  if (!videoElement || !stream) return;
+
+  videoElement.srcObject = stream;
+
+  try {
+    await videoElement.play();
+  } catch {
+    videoElement.onloadedmetadata = () => {
+      videoElement.play().catch(() => {});
+    };
+  }
+};
+
 const OnlineConsultation = () => {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
@@ -23,11 +37,13 @@ const OnlineConsultation = () => {
   const pcRef = useRef(null);
   const socketRef = useRef(null);
   const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(new MediaStream());
 
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
+  const [localStream, setLocalStream] = useState(null);
   const [prescriptionInput, setPrescriptionInput] = useState("");
   const [prescriptionSaving, setPrescriptionSaving] = useState(false);
   const [micOn, setMicOn] = useState(true);
@@ -41,14 +57,19 @@ const OnlineConsultation = () => {
     pcRef.current = pc;
 
     pc.ontrack = (event) => {
+      const remoteStream = remoteStreamRef.current;
+      if (event.track && remoteStream) {
+        remoteStream.addTrack(event.track);
+      }
+
       if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
+        attachStreamToVideo(remoteVideoRef.current, remoteStream);
       }
       setRemoteConnected(true);
     };
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && socketRef.current && session) {
+      if (event.candidate && socketRef.current) {
         socketRef.current.emit("consultation:ice-candidate", {
           appointmentId,
           candidate: event.candidate,
@@ -58,12 +79,14 @@ const OnlineConsultation = () => {
 
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localStreamRef.current = stream;
+    setLocalStream(stream);
 
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = stream;
-    }
   };
+
+  useEffect(() => {
+    attachStreamToVideo(localVideoRef.current, localStream);
+  }, [localStream]);
 
   const connectSocket = () => {
     const socket = createConsultationSocket();
@@ -116,6 +139,7 @@ const OnlineConsultation = () => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = null;
       }
+      remoteStreamRef.current = new MediaStream();
     });
   };
 
@@ -161,6 +185,7 @@ const OnlineConsultation = () => {
       socketRef.current?.disconnect();
       pcRef.current?.close();
       localStreamRef.current?.getTracks()?.forEach((track) => track.stop());
+      remoteStreamRef.current = new MediaStream();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId]);
@@ -251,54 +276,26 @@ const OnlineConsultation = () => {
             <p className="font-semibold">{session?.doctor?.name ? `Dr. ${session.doctor.name}` : "Doctor"} Consultation</p>
           </div>
 
-          <div className="rounded-xl bg-slate-800 border border-slate-700 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="font-semibold">Prescription</p>
-                <p className="text-xs text-slate-400">Saved with the consultation and visible later from this page.</p>
-              </div>
-              {session?.prescriptionUpdatedAt ? (
-                <span className="text-[11px] text-slate-400">
-                  Updated {new Date(session.prescriptionUpdatedAt).toLocaleString()}
-                </span>
-              ) : null}
-            </div>
+          <div className="rounded-xl bg-black/40 border border-slate-700 p-3">
+            <p className="text-xs text-slate-400 mb-2">Remote {remoteConnected ? "(connected)" : "(waiting...)"}</p>
+            <div className="relative">
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full rounded-lg bg-black aspect-video min-h-80 object-cover"
+              />
 
-            {role === "doctor" ? (
-              <div className="space-y-3">
-                <textarea
-                  value={prescriptionInput}
-                  onChange={(e) => setPrescriptionInput(e.target.value)}
-                  placeholder="Write the prescription, dosage, and follow-up notes here..."
-                  rows={6}
-                  className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm outline-none focus:border-cyan-500 resize-y"
+              <div className="absolute bottom-3 right-3 w-36 md:w-52 rounded-lg border border-slate-600 bg-slate-900/90 p-1.5 shadow-lg">
+                <p className="text-[10px] text-slate-300 mb-1">You ({role})</p>
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full rounded-md bg-black aspect-video object-cover"
                 />
-                <div className="flex justify-end">
-                  <button
-                    onClick={handleSavePrescription}
-                    disabled={prescriptionSaving}
-                    className="rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 px-4 py-2 text-sm font-semibold"
-                  >
-                    {prescriptionSaving ? "Saving..." : "Save Prescription"}
-                  </button>
-                </div>
               </div>
-            ) : (
-              <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 min-h-[120px] text-sm text-slate-100 whitespace-pre-wrap">
-                {session?.prescription?.trim() ? session.prescription : "No prescription has been added yet."}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-xl bg-black/40 border border-slate-700 p-2">
-              <p className="text-xs text-slate-400 mb-2">You ({role})</p>
-              <video ref={localVideoRef} autoPlay playsInline muted className="w-full rounded-lg bg-black aspect-video" />
-            </div>
-
-            <div className="rounded-xl bg-black/40 border border-slate-700 p-2">
-              <p className="text-xs text-slate-400 mb-2">Remote {remoteConnected ? "(connected)" : "(waiting...)"}</p>
-              <video ref={remoteVideoRef} autoPlay playsInline className="w-full rounded-lg bg-black aspect-video" />
             </div>
           </div>
 
@@ -315,37 +312,78 @@ const OnlineConsultation = () => {
           </div>
         </div>
 
-        <div className="rounded-xl bg-slate-800 border border-slate-700 flex flex-col h-[75vh]">
-          <div className="p-3 border-b border-slate-700">
-            <p className="font-semibold">Consultation Chat</p>
-            <p className="text-xs text-slate-400">Chat is retained for 30 days.</p>
+        <div className="h-[75vh] flex flex-col gap-4">
+          <div className="rounded-xl bg-slate-800 border border-slate-700 flex flex-col flex-1 min-h-0">
+            <div className="p-3 border-b border-slate-700">
+              <p className="font-semibold">Consultation Chat</p>
+              <p className="text-xs text-slate-400">Chat is retained for 30 days.</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {messages.map((message) => {
+                const mine = String(message.senderId) === String(user?._id);
+                return (
+                  <div key={message._id} className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${mine ? "bg-cyan-600 ml-auto" : "bg-slate-700"}`}>
+                    <p className="text-[11px] opacity-80 mb-1">{message.senderName || message.senderRole}</p>
+                    <p>{message.content}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="p-3 border-t border-slate-700 flex gap-2">
+              <input
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSend();
+                }}
+                placeholder="Type a message"
+                className="flex-1 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm outline-none focus:border-cyan-500"
+              />
+              <button onClick={handleSend} className="rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3">
+                <FiSend />
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {messages.map((message) => {
-              const mine = String(message.senderId) === String(user?._id);
-              return (
-                <div key={message._id} className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${mine ? "bg-cyan-600 ml-auto" : "bg-slate-700"}`}>
-                  <p className="text-[11px] opacity-80 mb-1">{message.senderName || message.senderRole}</p>
-                  <p>{message.content}</p>
+          <div className="rounded-xl bg-slate-800 border border-slate-700 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold">Prescription</p>
+                <p className="text-xs text-slate-400">Saved with consultation and visible later.</p>
+              </div>
+              {session?.prescriptionUpdatedAt ? (
+                <span className="text-[11px] text-slate-400">
+                  Updated {new Date(session.prescriptionUpdatedAt).toLocaleString()}
+                </span>
+              ) : null}
+            </div>
+
+            {role === "doctor" ? (
+              <div className="space-y-3">
+                <textarea
+                  value={prescriptionInput}
+                  onChange={(e) => setPrescriptionInput(e.target.value)}
+                  placeholder="Write the prescription, dosage, and follow-up notes here..."
+                  rows={4}
+                  className="w-full rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm outline-none focus:border-cyan-500 resize-y"
+                />
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleSavePrescription}
+                    disabled={prescriptionSaving}
+                    className="rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 px-4 py-2 text-sm font-semibold"
+                  >
+                    {prescriptionSaving ? "Saving..." : "Save Prescription"}
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="p-3 border-t border-slate-700 flex gap-2">
-            <input
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSend();
-              }}
-              placeholder="Type a message"
-              className="flex-1 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm outline-none focus:border-cyan-500"
-            />
-            <button onClick={handleSend} className="rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3">
-              <FiSend />
-            </button>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 min-h-24 text-sm text-slate-100 whitespace-pre-wrap">
+                {session?.prescription?.trim() ? session.prescription : "No prescription has been added yet."}
+              </div>
+            )}
           </div>
         </div>
       </div>
