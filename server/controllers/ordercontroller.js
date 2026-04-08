@@ -2,17 +2,22 @@ import crypto from 'crypto';
 import Order from '../models/orderModel.js';
 import User from '../models/userModel.js';
 import Product from '../models/productModel.js';
+import DeliveryLocationRule from '../models/deliveryLocationRuleModel.js';
 import nodemailer from 'nodemailer';
 import { getRazorpayInstance, getRazorpayKeyId } from '../config/razorpay.js';
 
 const DELIVERY_FEE = Number(process.env.DELIVERY_FEE || 50);
 
-const validateShippingDetails = (shippingDetails) => {
+const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+const normalizePincode = (value) => String(value || "").replace(/\D/g, "").trim();
+
+const validateShippingDetails = async (shippingDetails) => {
     if (!shippingDetails) return 'Shipping details are required';
 
-    const { fullName, email, phone, address, city, state, zip } = shippingDetails;
+    const { fullName, email, phone, address, city, state, country, zip } = shippingDetails;
 
-    if (!fullName || !email || !phone || !address || !city || !state || !zip) {
+    if (!fullName || !email || !phone || !address || !city || !state || !country || !zip) {
         return 'All shipping details are required';
     }
 
@@ -24,8 +29,37 @@ const validateShippingDetails = (shippingDetails) => {
         return 'Phone number must be 10 digits';
     }
 
-    if (!/^\d{5,6}$/.test(String(zip))) {
+    const normalizedZip = normalizePincode(zip);
+    if (!/^\d{5,6}$/.test(normalizedZip)) {
         return 'ZIP Code must be 5-6 digits';
+    }
+
+    const rules = await DeliveryLocationRule.findOne({ singletonKey: 'global' });
+    if (!rules || !rules.isEnabled) return null;
+
+    const cityAllowed = new Set((rules.allowedCities || []).map(normalizeText));
+    const stateAllowed = new Set((rules.allowedStates || []).map(normalizeText));
+    const countryAllowed = new Set((rules.allowedCountries || []).map(normalizeText));
+    const pincodeAllowed = new Set((rules.allowedPincodes || []).map(normalizePincode));
+
+    const normalizedCity = normalizeText(city);
+    const normalizedState = normalizeText(state);
+    const normalizedCountry = normalizeText(country);
+
+    if (cityAllowed.size > 0 && !cityAllowed.has(normalizedCity)) {
+        return 'Delivery is not available for this city';
+    }
+
+    if (stateAllowed.size > 0 && !stateAllowed.has(normalizedState)) {
+        return 'Delivery is not available for this state';
+    }
+
+    if (countryAllowed.size > 0 && !countryAllowed.has(normalizedCountry)) {
+        return 'Delivery is not available for this country';
+    }
+
+    if (pincodeAllowed.size > 0 && !pincodeAllowed.has(normalizedZip)) {
+        return 'Delivery is not available for this pincode';
     }
 
     return null;
@@ -155,7 +189,7 @@ export const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Payment method is required' });
         }
 
-        const shippingValidationError = validateShippingDetails(shippingDetails);
+        const shippingValidationError = await validateShippingDetails(shippingDetails);
         if (shippingValidationError) {
             return res.status(400).json({ success: false, message: shippingValidationError });
         }
@@ -198,7 +232,7 @@ export const createOnlineOrder = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
 
-        const shippingValidationError = validateShippingDetails(shippingDetails);
+        const shippingValidationError = await validateShippingDetails(shippingDetails);
         if (shippingValidationError) {
             return res.status(400).json({ success: false, message: shippingValidationError });
         }

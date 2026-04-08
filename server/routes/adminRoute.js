@@ -4,6 +4,7 @@ import upload from '../middlewares/uploadImg.js';
 import {adminDashboard, adminLogin, adminLogout, createUser, deleteAppointment, deleteDoctor, deleteOrder, deleteProduct, getAdminStats, getAllAppointments, getAllDoctors, getAllProducts, getAppointmentById, getDoctorById, getOrderById, getProductById, getUserById, rejectDoctor, updateAppointment, updateOrderStatus, updateProduct, verifyDoctor, createDoctor,
   createDeliveryMan, getAllDeliveryMen, deleteDeliveryMan, toggleDeliveryManStatus, assignOrderToDelivery, sendNoticeEmails, getRecentNotices
 , getLeaveRequests, approveLeaveRequest, rejectLeaveRequest
+, getDeliveryLocationRules, updateDeliveryLocationRules
 } from '../controllers/adminController.js';
 
 
@@ -54,6 +55,8 @@ adminRouter.get('/delivery-men',adminAuth, getAllDeliveryMen);
 adminRouter.delete('/delivery-men/:id',adminAuth, deleteDeliveryMan);
 adminRouter.patch('/delivery-men/:id/toggle-status',adminAuth, toggleDeliveryManStatus);
 adminRouter.put('/assign-order/:orderId',adminAuth, assignOrderToDelivery);
+adminRouter.get('/delivery-location-rules', adminAuth, getDeliveryLocationRules);
+adminRouter.put('/delivery-location-rules', adminAuth, updateDeliveryLocationRules);
 
 // Notices
 adminRouter.post('/notices/send', adminAuth, sendNoticeEmails);

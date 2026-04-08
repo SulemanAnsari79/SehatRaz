@@ -32,7 +32,6 @@ const Profile = () => {
     try {
       const data = await AuthService.getCurrentUser();
 
-      console.log("Profile data:", data);
 
       setName(data.user.name || "");
       setEmail(data.user.email || "");

@@ -74,11 +74,8 @@ const ManageAppointments = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log("Fetching appointments...");
       const response = await getAppointments();
-      console.log("Response:", response);
       const appts = response.data?.appointments || response.data || [];
-      console.log("Appointments:", appts);
       setAppointments(appts);
     } catch (err) {
       console.error("Fetch appointments error:", err);

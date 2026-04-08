@@ -237,5 +237,4 @@ export const startAppointmentReminderJob = () => {
 
   run();
   reminderTimer = setInterval(run, 5 * 60 * 1000);
-  console.log("Appointment reminder job started (every 5 minutes)");
 };

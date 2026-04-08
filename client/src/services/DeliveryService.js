@@ -8,6 +8,15 @@ const authHeader = () => ({
 export const deliveryLogin = (email, password) =>
   api.post("/api/delivery/login", { email, password });
 
+export const getDeliveryProfile = () =>
+  api.get("/api/delivery/profile", authHeader());
+
+export const changeDeliveryPassword = (currentPassword, newPassword) =>
+  api.put("/api/delivery/change-password", { currentPassword, newPassword }, authHeader());
+
+export const deleteDeliveryAccount = (password) =>
+  api.delete("/api/delivery/delete-account", { ...authHeader(), data: { password } });
+
 // ─── Orders ───────────────────────────────────────────────────────────────────
 export const getMyAssignedOrders = () =>
   api.get("/api/delivery/my-orders", authHeader());

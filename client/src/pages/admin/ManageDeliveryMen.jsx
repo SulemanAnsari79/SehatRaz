@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../../services/Api";
 import { toast } from "react-toastify";
-import { FiPlus, FiTrash2, FiToggleLeft, FiToggleRight, FiTruck, FiUser, FiPhone, FiMail, FiX } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiToggleLeft, FiToggleRight, FiTruck, FiUser, FiPhone, FiMail, FiX, FiSave, FiMapPin } from "react-icons/fi";
+import { getDeliveryLocationRules, updateDeliveryLocationRules } from "../../services/AdminService.js";
 
 const ManageDeliveryMen = () => {
   const [deliveryMen, setDeliveryMen] = useState([]);
@@ -9,6 +10,14 @@ const ManageDeliveryMen = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
   const [adding, setAdding] = useState(false);
+  const [savingRules, setSavingRules] = useState(false);
+  const [locationRules, setLocationRules] = useState({
+    isEnabled: false,
+    allowedCities: "",
+    allowedStates: "",
+    allowedCountries: "",
+    allowedPincodes: "",
+  });
 
   const authHeader = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -26,8 +35,46 @@ const ManageDeliveryMen = () => {
     }
   };
 
+  const fetchLocationRules = async () => {
+    try {
+      const res = await getDeliveryLocationRules();
+      const rules = res?.data?.rules || {};
+      setLocationRules({
+        isEnabled: !!rules.isEnabled,
+        allowedCities: (rules.allowedCities || []).join(", "),
+        allowedStates: (rules.allowedStates || []).join(", "),
+        allowedCountries: (rules.allowedCountries || []).join(", "),
+        allowedPincodes: (rules.allowedPincodes || []).join(", "),
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to fetch delivery location rules");
+    }
+  };
+
+  const handleSaveLocationRules = async () => {
+    try {
+      setSavingRules(true);
+      await updateDeliveryLocationRules({
+        isEnabled: locationRules.isEnabled,
+        allowedCities: locationRules.allowedCities,
+        allowedStates: locationRules.allowedStates,
+        allowedCountries: locationRules.allowedCountries,
+        allowedPincodes: locationRules.allowedPincodes,
+      });
+      toast.success("Delivery location rules updated");
+      await fetchLocationRules();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update delivery location rules");
+    } finally {
+      setSavingRules(false);
+    }
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchDeliveryMen(); }, []);
+  useEffect(() => {
+    fetchDeliveryMen();
+    fetchLocationRules();
+  }, []);
 
   const handleAdd = async () => {
     const { name, email, password, phone } = form;
@@ -88,6 +135,78 @@ const ManageDeliveryMen = () => {
           <FiPlus size={16} />
           Add Delivery Man
         </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 mb-1">
+          <FiMapPin className="text-blue-600" /> Delivery Location Rules
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Enable this to restrict orders only to allowed cities, states, countries, or pincodes.
+        </p>
+
+        <div className="flex items-center gap-3 mb-4">
+          <label className="text-sm font-medium text-gray-700">Restrict Delivery Locations</label>
+          <input
+            type="checkbox"
+            checked={locationRules.isEnabled}
+            onChange={(e) => setLocationRules((prev) => ({ ...prev, isEnabled: e.target.checked }))}
+            className="h-4 w-4"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Cities (comma separated)</label>
+            <textarea
+              rows={3}
+              value={locationRules.allowedCities}
+              onChange={(e) => setLocationRules((prev) => ({ ...prev, allowedCities: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Kochi, Mumbai"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Allowed States (comma separated)</label>
+            <textarea
+              rows={3}
+              value={locationRules.allowedStates}
+              onChange={(e) => setLocationRules((prev) => ({ ...prev, allowedStates: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Kerala, Maharashtra"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Countries (comma separated)</label>
+            <textarea
+              rows={3}
+              value={locationRules.allowedCountries}
+              onChange={(e) => setLocationRules((prev) => ({ ...prev, allowedCountries: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="India"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Pincodes (comma separated)</label>
+            <textarea
+              rows={3}
+              value={locationRules.allowedPincodes}
+              onChange={(e) => setLocationRules((prev) => ({ ...prev, allowedPincodes: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="682001, 400001"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleSaveLocationRules}
+            disabled={savingRules}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+          >
+            <FiSave size={16} /> {savingRules ? "Saving..." : "Save Location Rules"}
+          </button>
+        </div>
       </div>
 
       {loading ? (

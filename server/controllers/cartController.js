@@ -5,7 +5,6 @@ export const addToCart = async (req, res) => {
     try {
         const userId = req.user?._id;
         const { productId, quantity, size } = req.body;
-        console.log(userId)
 
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });

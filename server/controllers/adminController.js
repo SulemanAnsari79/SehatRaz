@@ -6,6 +6,7 @@ import Appointment from "../models/appointmentModel.js";
 import DeliveryMan from "../models/deliveryManModel.js";
 import Notice from "../models/noticeModel.js";
 import LeaveRequest from "../models/leaveRequestModel.js";
+import DeliveryLocationRule from "../models/deliveryLocationRuleModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -218,6 +219,17 @@ const getNoticeTargetText = (scope, group, recipientType) => {
   if (scope === "group") return `Group: ${group}`;
   if (scope === "individual") return `Individual (${recipientType})`;
   return "Unknown";
+};
+
+const normalizeRuleList = (input) => {
+  const values = Array.isArray(input)
+    ? input
+    : String(input || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  return Array.from(new Set(values));
 };
 
 export const adminLogin = async (req, res) => {
@@ -784,6 +796,69 @@ export const toggleDeliveryManStatus = async (req, res) => {
     res.status(200).json({ success: true, message: `Delivery man ${dm.isActive ? "activated" : "deactivated"}`, isActive: dm.isActive });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getDeliveryLocationRules = async (req, res) => {
+  try {
+    const rules = await DeliveryLocationRule.findOne({ singletonKey: "global" });
+
+    return res.status(200).json({
+      success: true,
+      rules: {
+        isEnabled: rules?.isEnabled || false,
+        allowedCities: rules?.allowedCities || [],
+        allowedStates: rules?.allowedStates || [],
+        allowedCountries: rules?.allowedCountries || [],
+        allowedPincodes: rules?.allowedPincodes || [],
+      },
+    });
+  } catch (error) {
+    console.error("Get delivery location rules error:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch delivery location rules" });
+  }
+};
+
+export const updateDeliveryLocationRules = async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const allowedCities = normalizeRuleList(payload.allowedCities);
+    const allowedStates = normalizeRuleList(payload.allowedStates);
+    const allowedCountries = normalizeRuleList(payload.allowedCountries);
+    const allowedPincodes = normalizeRuleList(payload.allowedPincodes).map((item) => String(item).replace(/\D/g, ""));
+
+    const hasAnyRule =
+      allowedCities.length > 0 ||
+      allowedStates.length > 0 ||
+      allowedCountries.length > 0 ||
+      allowedPincodes.length > 0;
+
+    const isEnabled =
+      typeof payload.isEnabled === "boolean"
+        ? payload.isEnabled
+        : hasAnyRule;
+
+    const rules = await DeliveryLocationRule.findOneAndUpdate(
+      { singletonKey: "global" },
+      {
+        singletonKey: "global",
+        isEnabled,
+        allowedCities,
+        allowedStates,
+        allowedCountries,
+        allowedPincodes,
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Delivery location rules updated",
+      rules,
+    });
+  } catch (error) {
+    console.error("Update delivery location rules error:", error);
+    return res.status(500).json({ success: false, message: "Failed to update delivery location rules" });
   }
 };
 

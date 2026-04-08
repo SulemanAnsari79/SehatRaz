@@ -106,6 +106,16 @@ export const getDeliveryMen = () =>
 		headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 	});
 
+export const getDeliveryLocationRules = () =>
+	API.get("/admin/delivery-location-rules", {
+		headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+	});
+
+export const updateDeliveryLocationRules = (data) =>
+	API.put("/admin/delivery-location-rules", data, {
+		headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+	});
+
 // Notices
 export const sendNoticeEmails = (data) =>
 	API.post("/admin/notices/send", data, {

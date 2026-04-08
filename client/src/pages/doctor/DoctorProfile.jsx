@@ -15,8 +15,11 @@ import {
   FiDollarSign,
   FiClock,
   FiUser,
+  FiLock,
+  FiTrash2,
 } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { changeDoctorPassword, deleteDoctorAccount } from "../../services/DoctorService.js";
 
 const DoctorProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -24,8 +27,15 @@ const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { logout } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
     specialization: "",
@@ -170,6 +180,78 @@ const DoctorProfile = () => {
     });
   };
 
+  const closePasswordModal = () => {
+    setShowChangePasswordModal(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+  };
+
+  const closeDeleteAccountModal = () => {
+    setShowDeleteAccountModal(false);
+    setDeletePassword("");
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      toast.error("All password fields are required");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const response = await changeDoctorPassword(currentPassword, newPassword);
+      if (response?.data?.success) {
+        toast.success("Password changed successfully!");
+        closePasswordModal();
+      } else {
+        toast.error(response?.data?.message || "Failed to change password");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to change password");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+
+    if (!deletePassword) {
+      toast.error("Password is required to delete account");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const response = await deleteDoctorAccount(deletePassword);
+      if (response?.data?.success) {
+        toast.success("Account deleted successfully");
+        closeDeleteAccountModal();
+        logout();
+        navigate("/login");
+      } else {
+        toast.error(response?.data?.message || "Failed to delete account");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete account");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -183,7 +265,7 @@ const DoctorProfile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center bg-linear-to-br from-gray-50 to-gray-100">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md">
           <div className="text-center mb-6">
             <FiAlertCircle className="text-4xl text-red-500 mx-auto mb-4" />
@@ -198,7 +280,7 @@ const DoctorProfile = () => {
               <p className="font-mono text-gray-700">
                 User: {localStorage.getItem("user") ? "✓ Found" : "✗ Missing"}
               </p>
-              <p className="font-mono text-gray-700 mt-2 text-orange-600">
+              <p className="font-mono mt-2 text-orange-600">
                 💡 Check browser console (F12) for detailed logs
               </p>
             </div>
@@ -246,7 +328,7 @@ const DoctorProfile = () => {
     .toUpperCase() || "DR";
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen p-4 md:p-8 bg-linear-to-br from-gray-50 to-gray-100">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="mb-8 flex items-center justify-between">
@@ -277,7 +359,7 @@ const DoctorProfile = () => {
         {/* Error Alert */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3">
-            <FiAlertCircle className="flex-shrink-0 mt-0.5" />
+            <FiAlertCircle className="shrink-0 mt-0.5" />
             <p>{error}</p>
           </div>
         )}
@@ -285,15 +367,15 @@ const DoctorProfile = () => {
         {/* Main Profile Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
           {/* Profile Header with Banner */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-500 h-32 md:h-40" />
+          <div className="bg-linear-to-r from-blue-600 to-blue-500 h-32 md:h-40" />
 
           {/* Profile Content */}
           <div className="px-6 md:px-8 pb-8">
             {/* Profile Section */}
             <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-16 md:-mt-20 mb-8 relative z-10">
               {/* Avatar */}
-              <div className="flex-shrink-0">
-                <div className="w-24 md:w-32 h-24 md:h-32 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg flex items-center justify-center border-4 border-white">
+              <div className="shrink-0">
+                <div className="w-24 md:w-32 h-24 md:h-32 bg-linear-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg flex items-center justify-center border-4 border-white">
                   <span className="text-4xl md:text-5xl font-bold text-white">{initials}</span>
                 </div>
               </div>
@@ -456,7 +538,7 @@ const DoctorProfile = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Specialization Card */}
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
+                    <div className="bg-linear-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="p-2 bg-blue-200 rounded-lg">
                           <FiAward className="text-blue-700 text-lg" />
@@ -469,7 +551,7 @@ const DoctorProfile = () => {
                     </div>
 
                     {/* Experience Card */}
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
+                    <div className="bg-linear-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="p-2 bg-green-200 rounded-lg">
                           <FiUser className="text-green-700 text-lg" />
@@ -482,7 +564,7 @@ const DoctorProfile = () => {
                     </div>
 
                     {/* Consultation Fees Card */}
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
+                    <div className="bg-linear-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="p-2 bg-purple-200 rounded-lg">
                           <FiDollarSign className="text-purple-700 text-lg" />
@@ -495,7 +577,7 @@ const DoctorProfile = () => {
                     </div>
 
                     {/* Timings Card */}
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-lg border border-orange-200">
+                    <div className="bg-linear-to-br from-orange-50 to-orange-100 p-6 rounded-lg border border-orange-200">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="p-2 bg-orange-200 rounded-lg">
                           <FiClock className="text-orange-700 text-lg" />
@@ -579,7 +661,158 @@ const DoctorProfile = () => {
             </p>
           </div>
         </div>
+
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Account Settings</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+              <div>
+                <h4 className="font-semibold text-gray-800">Change Password</h4>
+                <p className="text-sm text-gray-500">Update your password to keep your account secure</p>
+              </div>
+              <button
+                onClick={() => setShowChangePasswordModal(true)}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                <FiLock size={16} /> Change
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg hover:bg-red-50">
+              <div>
+                <h4 className="font-semibold text-red-700">Delete Account</h4>
+                <p className="text-sm text-gray-500">Permanently delete your doctor account and profile data</p>
+              </div>
+              <button
+                onClick={() => setShowDeleteAccountModal(true)}
+                className="inline-flex items-center gap-2 bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition"
+              >
+                <FiTrash2 size={16} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Change Password</h3>
+              <button onClick={closePasswordModal} className="text-gray-500 hover:text-gray-700">
+                <FiX />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter current password"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter new password"
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Confirm new password"
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {passwordLoading ? "Changing..." : "Change Password"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closePasswordModal}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteAccountModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-red-700">Delete Account</h3>
+              <button onClick={closeDeleteAccountModal} className="text-gray-500 hover:text-gray-700">
+                <FiX />
+              </button>
+            </div>
+
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                <strong>Warning:</strong> This action cannot be undone. Your doctor account will be permanently deleted.
+              </p>
+            </div>
+
+            <form onSubmit={handleDeleteAccount} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {passwordLoading ? "Deleting..." : "Delete Account"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeDeleteAccountModal}
+                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

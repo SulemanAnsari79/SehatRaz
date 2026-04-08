@@ -43,6 +43,7 @@ import DoctorProfile from "./pages/doctor/DoctorProfile.jsx";
 
 import DeliveryLayout from "./layouts/DeliveryLayout.jsx";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard.jsx";
+import DeliveryProfile from "./pages/delivery/DeliveryProfile.jsx";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -110,6 +111,7 @@ function App() {
             <Route path="/delivery" element={<DeliveryLayout />}>
               <Route index element={<DeliveryDashboard />} />
               <Route path="orders" element={<DeliveryDashboard />} />
+              <Route path="profile" element={<DeliveryProfile />} />
             </Route>
           </Route>
 

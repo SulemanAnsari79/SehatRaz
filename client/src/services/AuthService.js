@@ -69,8 +69,6 @@ const AuthService = {
       
       const response = await api.post(`/api/${role}/login`, { email, password});
 
-      console.log('Login response:', response.data);
-
       // Store token in localStorage
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);

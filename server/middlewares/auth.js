@@ -16,7 +16,6 @@ const auth = async (req,res,next)=>{
     if (!decodedToken || !decodedToken.role || !['user', 'doctor', 'admin', 'delivery'].includes(decodedToken.role)) {
           return res.status(403).json({success:false, message: "Access Denied" });
     }
-    // console.log("Decoded Token:", decodedToken);
     // For non-admin users, verify they exist in database
     if (decodedToken.role !== "admin") {
       if (decodedToken.role === "user") {

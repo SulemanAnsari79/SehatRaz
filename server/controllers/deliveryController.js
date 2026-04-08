@@ -235,3 +235,72 @@ export const getDeliveryProfile = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+export const changeDeliveryPassword = async (req, res) => {
+  try {
+    const deliveryManId = req.deliveryMan?._id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!deliveryManId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: "Current and new passwords are required" });
+    }
+
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ success: false, message: "New password must be at least 6 characters" });
+    }
+
+    const deliveryMan = await DeliveryMan.findById(deliveryManId);
+    if (!deliveryMan) {
+      return res.status(404).json({ success: false, message: "Delivery man not found" });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, deliveryMan.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Current password is incorrect" });
+    }
+
+    deliveryMan.password = await bcrypt.hash(newPassword, 10);
+    await deliveryMan.save();
+
+    return res.status(200).json({ success: true, message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Change delivery password error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const deleteDeliveryAccount = async (req, res) => {
+  try {
+    const deliveryManId = req.deliveryMan?._id;
+    const { password } = req.body;
+
+    if (!deliveryManId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (!password) {
+      return res.status(400).json({ success: false, message: "Password is required to delete account" });
+    }
+
+    const deliveryMan = await DeliveryMan.findById(deliveryManId);
+    if (!deliveryMan) {
+      return res.status(404).json({ success: false, message: "Delivery man not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, deliveryMan.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Password is incorrect" });
+    }
+
+    await DeliveryMan.findByIdAndDelete(deliveryManId);
+
+    return res.status(200).json({ success: true, message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Delete delivery account error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};

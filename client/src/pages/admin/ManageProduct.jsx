@@ -174,7 +174,7 @@ const ManageProducts = () => {
     setTagInput("");
     setModalMode("edit");
     setShowModal(true);
-    console.log("Modal mode set to edit, showModal set to true");
+    
   };
 
   const handleAddProduct = () => {
@@ -197,7 +197,7 @@ const ManageProducts = () => {
     setTagInput("");
     setModalMode("add");
     setShowModal(true);
-    console.log("showModal set to true");
+      
   };
 
   const handleDeleteProduct = async (id) => {

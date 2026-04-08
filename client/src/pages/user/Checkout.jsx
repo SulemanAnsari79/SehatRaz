@@ -35,6 +35,7 @@ const Checkout = () => {
     address: "",
     city: "",
     state: "",
+    country: "",
     zip: "",
   });
 
@@ -79,7 +80,7 @@ const Checkout = () => {
 
   // Validate form
   const validateForm = () => {
-    const { fullName, email, phone, address, city, state, zip } = shipping;
+    const { fullName, email, phone, address, city, state, country, zip } = shipping;
     
     if (!fullName.trim()) {
       toast.error("Full Name is required");
@@ -111,6 +112,10 @@ const Checkout = () => {
     }
     if (!state.trim()) {
       toast.error("State is required");
+      return false;
+    }
+    if (!country.trim()) {
+      toast.error("Country is required");
       return false;
     }
     if (!zip.trim()) {
@@ -337,6 +342,19 @@ const Checkout = () => {
                   name="state"
                   placeholder="State"
                   value={shipping.state}
+                  onChange={handleChange}
+                  className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label htmlFor="shipping-country" className="text-sm font-medium text-gray-700">Country</label>
+                <input
+                  id="shipping-country"
+                  type="text"
+                  name="country"
+                  placeholder="Country"
+                  value={shipping.country}
                   onChange={handleChange}
                   className="border p-3 rounded w-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />

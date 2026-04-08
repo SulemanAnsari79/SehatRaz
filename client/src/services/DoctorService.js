@@ -10,6 +10,10 @@ export const doctorLogout = () => api.post("/doctor/logout");
 // Profile Management
 export const getDoctorProfile = () => api.get("/doctor/profile");
 export const getVerifiedDoctors = () => api.get("/doctor/list");
+export const changeDoctorPassword = (currentPassword, newPassword) =>
+	api.put("/doctor/change-password", { currentPassword, newPassword });
+export const deleteDoctorAccount = (password) =>
+	api.delete("/doctor/delete-account", { data: { password } });
 
 export const updateDoctorProfile = (data) => api.post("/doctor/updateprofile", data);
 export const createLeaveRequest = (data) => api.post("/doctor/leave-request", data);

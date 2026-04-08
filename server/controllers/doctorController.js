@@ -223,3 +223,70 @@ export const getMyLeaveRequests = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+export const changeDoctorPassword = async (req, res) => {
+    try {
+        const doctorId = req.user?.id;
+        if (!doctorId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+
+        const { currentPassword, newPassword } = req.body;
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Current and new passwords are required' });
+        }
+
+        if (String(newPassword).length < 6) {
+            return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+        }
+
+        const doctor = await Doctor.findById(doctorId);
+        if (!doctor) {
+            return res.status(404).json({ success: false, message: 'Doctor not found' });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, doctor.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+        }
+
+        doctor.password = await bcrypt.hash(newPassword, 10);
+        await doctor.save();
+
+        return res.status(200).json({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+        console.error('Doctor change password error:', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const deleteDoctorAccount = async (req, res) => {
+    try {
+        const doctorId = req.user?.id;
+        if (!doctorId) {
+            return res.status(401).json({ success: false, message: 'Unauthorized' });
+        }
+
+        const { password } = req.body;
+        if (!password) {
+            return res.status(400).json({ success: false, message: 'Password is required to delete account' });
+        }
+
+        const doctor = await Doctor.findById(doctorId);
+        if (!doctor) {
+            return res.status(404).json({ success: false, message: 'Doctor not found' });
+        }
+
+        const isMatch = await bcrypt.compare(password, doctor.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Password is incorrect' });
+        }
+
+        await Doctor.findByIdAndDelete(doctorId);
+
+        return res.status(200).json({ success: true, message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Doctor delete account error:', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
