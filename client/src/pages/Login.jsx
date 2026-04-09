@@ -4,6 +4,7 @@ import { ChevronDown, User as UserIcon } from "lucide-react";
 import { toast } from "react-toastify";
 import AuthService from "../services/AuthService";
 import { AuthContext } from "../context/AuthContext";
+import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 
 
 export default function Login() {
@@ -119,7 +120,12 @@ export default function Login() {
           setForm({ name: "", email: "", password: "", phone: "", specialization: "", experience: "", qualifications: "" });
           setMode("login");
         } else {
-          toast.error("Registration failed. Please try again.");
+          // Handle password validation errors from server
+          if (response.issues && Array.isArray(response.issues)) {
+            toast.error("Password requirements: " + response.issues.join(", "));
+          } else {
+            toast.error(response.message || "Registration failed. Please try again.");
+          }
         }
       } else {
         const response = await AuthService.register(form.name, form.email, form.password, role);
@@ -128,11 +134,18 @@ export default function Login() {
           setForm({ name: "", email: "", password: "", phone: "", specialization: "", experience: "", qualifications: "" });
           setMode("login");
         } else {
-          toast.error("Registration failed. Please try again.");
+          // Handle password validation errors from server
+          if (response.issues && Array.isArray(response.issues)) {
+            toast.error("Password requirements: " + response.issues.join(", "));
+          } else {
+            toast.error(response.message || "Registration failed. Please try again.");
+          }
         }
       }
     } catch (error) {
-      const errorMsg = error.message || "Registration failed";
+      const errorMsg = error.response?.data?.issues 
+        ? "Password requirements: " + error.response.data.issues.join(", ")
+        : error.message || "Registration failed";
       toast.error(errorMsg);
       console.error("Register error details:", error);
     }
@@ -365,6 +378,7 @@ export default function Login() {
                   placeholder="••••••••"
                 />
                 {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
+                {mode === "signup" && <PasswordStrengthIndicator password={form.password} />}
               </div>
             ) : null}
 
@@ -465,6 +479,7 @@ export default function Login() {
                     placeholder="Enter new password"
                   />
                   {errors.resetPassword && <p className="mt-1 text-sm text-red-500">{errors.resetPassword}</p>}
+                  <PasswordStrengthIndicator password={resetPassword} />
                 </div>
 
                 <div>

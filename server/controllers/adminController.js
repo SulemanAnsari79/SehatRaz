@@ -983,6 +983,49 @@ export const rejectLeaveRequest = async (req, res) => {
   }
 };
 
+// Public endpoint to get delivery locations (no auth required)
+export const getPublicDeliveryLocations = async (req, res) => {
+  try {
+    const rules = await DeliveryLocationRule.findOne({ singletonKey: "global" });
+
+    if (!rules || !rules.isEnabled) {
+      return res.status(200).json({
+        success: true,
+        locations: {
+          isEnabled: false,
+          cities: [],
+          states: [],
+          countries: [],
+          pincodes: [],
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      locations: {
+        isEnabled: true,
+        cities: rules.allowedCities || [],
+        states: rules.allowedStates || [],
+        countries: rules.allowedCountries || [],
+        pincodes: rules.allowedPincodes || [],
+      },
+    });
+  } catch (error) {
+    console.error("Get public delivery locations error:", error);
+    return res.status(200).json({
+      success: true,
+      locations: {
+        isEnabled: false,
+        cities: [],
+        states: [],
+        countries: [],
+        pincodes: [],
+      },
+    });
+  }
+};
+
 export { adminDashboard,
   createUser,
   // getAllUsers,  

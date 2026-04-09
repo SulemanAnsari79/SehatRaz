@@ -39,7 +39,10 @@ const orderSchema = new mongoose.Schema({
     state:{type:String,required:true},
     country:{type:String,required:true},
     zip:{type:String,required:true}
-  }
+  },
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null },
+  deletedReason: { type: String, default: '' }
 },{timestamps:true});
 
 export default mongoose.model("Order",orderSchema);

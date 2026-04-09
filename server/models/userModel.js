@@ -15,6 +15,9 @@ const userSchema = new mongoose.Schema({
   image:{type:String,default:""},
   role:{type:String,default:"user"},
   isActive:{type:Boolean,default:true},
+  isDeleted: {type:Boolean,default:false},
+  deletedAt: {type:Date,default:null},
+  deletedReason: {type:String,default:""},
   cart: [
   {
     productId: {

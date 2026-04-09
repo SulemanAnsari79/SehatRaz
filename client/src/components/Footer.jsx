@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 text-gray-300 px-6 py-10">
+    <footer className="bg-green-700 text-gray-300 px-6 py-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
 
         {/* Column 1 - Logo */}
@@ -62,7 +62,7 @@ const Footer = () => {
       </div>
 
       {/* Bottom Bar */}
-      <div className="text-center text-sm text-gray-400 mt-8 border-t border-gray-700 pt-4">
+      <div className="text-center text-sm mt-8 border-t border-gray-700 pt-4">
         © {new Date().getFullYear()} Sehatraz. All Rights Reserved.
       </div>
     </footer>

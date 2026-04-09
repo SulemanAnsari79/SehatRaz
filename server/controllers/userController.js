@@ -1,9 +1,12 @@
 import User from '../models/userModel.js';
+import Order from '../models/orderModel.js';
+import Appointment from '../models/appointmentModel.js';
 import Notice from '../models/noticeModel.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import { v2 as cloudinary } from 'cloudinary';
+import { validatePasswordStrength } from '../utils/passwordValidator.js';
 
 const createToken = (id, role = "user") => {
     return jwt.sign({ _id: id, role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -21,6 +24,16 @@ export const register = async (req, res) => {
         // Basic email validation
         if (!email.includes('@')) {
             return res.status(400).json({ success: false, message: 'Invalid email format' });
+        }
+
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(password);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Password does not meet security requirements',
+                issues: passwordValidation.issues
+            });
         }
 
         // Check if user already exists
@@ -93,6 +106,17 @@ export const createUser = async (req, res) => {
         if (!email.includes('@')) {
             return res.status(400).json({ success: false, message: 'Invalid email format' });
         }
+        
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(password);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Password does not meet security requirements',
+                issues: passwordValidation.issues
+            });
+        }
+        
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'User already exists' });
@@ -243,10 +267,47 @@ export const updateUser = async (req,res)=>{
 
 export const deleteUser = async (req,res)=>{
   try{
-    await User.findByIdAndDelete(req.params.id);
-    res.json({message:"User deleted"});
+    const userId = req.params.id;
+    
+    // Soft delete user
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedReason: 'User account deleted by admin'
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    // Soft delete all user's orders
+    await Order.updateMany(
+      { user: userId },
+      {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedReason: 'Deleted with user account'
+      }
+    );
+
+    // Soft delete all user's appointments
+    await Appointment.updateMany(
+      { user: userId },
+      {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedReason: 'Deleted with user account'
+      }
+    );
+
+    res.json({ success: true, message: 'User and associated data deleted successfully' });
   }catch(err){
-    res.status(500).json({message:"Delete failed"});
+    console.error('Delete user error:', err);
+    res.status(500).json({ success: false, message: 'Delete failed' });
   }
 };
 
@@ -260,6 +321,17 @@ export const changePassword = async (req, res) => {
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ success: false, message: 'Current and new passwords are required' });
         }
+        
+        // Validate new password strength
+        const passwordValidation = validatePasswordStrength(newPassword);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'New password does not meet security requirements',
+                issues: passwordValidation.issues
+            });
+        }
+        
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -297,8 +369,38 @@ export const deleteAccount = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Password is incorrect' });
         }
-        await User.findByIdAndDelete(userId);
-        res.status(200).json({ success: true, message: 'Account deleted successfully' });
+        
+        // Soft delete user account
+        await User.findByIdAndUpdate(
+            userId,
+            {
+                isDeleted: true,
+                deletedAt: new Date(),
+                deletedReason: 'User self-deleted account'
+            }
+        );
+        
+        // Soft delete all user's orders
+        await Order.updateMany(
+            { user: userId },
+            {
+                isDeleted: true,
+                deletedAt: new Date(),
+                deletedReason: 'Deleted with user account'
+            }
+        );
+
+        // Soft delete all user's appointments
+        await Appointment.updateMany(
+            { user: userId },
+            {
+                isDeleted: true,
+                deletedAt: new Date(),
+                deletedReason: 'Deleted with user account'
+            }
+        );
+        
+        res.status(200).json({ success: true, message: 'Account and associated data deleted successfully' });
     }
     catch (error) {
         console.error('Delete account error:', error);
@@ -421,8 +523,14 @@ export const resetPasswordWithOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email and new password are required' });
         }
 
-        if (newPassword.length < 6) {
-            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+        // Validate password strength
+        const passwordValidation = validatePasswordStrength(newPassword);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Password does not meet security requirements',
+                issues: passwordValidation.issues
+            });
         }
 
         const user = await User.findOne({ email });

@@ -23,6 +23,9 @@ const appointmentSchema = new mongoose.Schema({
   ,originalTime:{type:String,default:""}
   ,reminderSentAt:{type:Date,default:null}
   ,reminderSentFor:{type:String,default:""}
+  ,isDeleted: {type:Boolean,default:false}
+  ,deletedAt: {type:Date,default:null}
+  ,deletedReason: {type:String,default:""}
 },{timestamps:true});
 
 export default mongoose.model("Appointment",appointmentSchema);

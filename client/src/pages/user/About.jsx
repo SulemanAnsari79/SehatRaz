@@ -1,15 +1,40 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import { getDeliveryLocations } from "../../services/LocationService";
 
 const About = () => {
+  const [locations, setLocations] = useState({
+    isEnabled: false,
+    cities: [],
+    states: [],
+    countries: [],
+    pincodes: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      setLoading(true);
+      const data = await getDeliveryLocations();
+      if (data.success && data.locations) {
+        setLocations(data.locations);
+      }
+      setLoading(false);
+    };
+
+    fetchLocations();
+  }, []);
+
   return (
     <>
     <Navbar />
     <div className="bg-gray-50 min-h-screen">
 
       {/* Hero Section */}
-      <div className="bg-black text-white py-20 text-center px-4">
+
+      {/* Hero Section */}
+      <div className="bg-blue-600 text-white py-20 text-center px-4">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
           About Sehatraz
         </h1>
@@ -119,6 +144,83 @@ const About = () => {
 
         </div>
       </div>
+
+      {/* Delivery Locations */}
+      {locations.isEnabled && (locations.cities.length > 0 || locations.states.length > 0 || locations.countries.length > 0 || locations.pincodes.length > 0) && (
+        <div className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-6">
+            <h2 className="text-3xl font-bold text-center mb-10">
+              Currently Delivering To
+            </h2>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {/* Countries */}
+              {locations.countries && locations.countries.length > 0 && (
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-lg shadow">
+                  <h3 className="text-lg font-semibold mb-4 text-indigo-800 flex items-center">
+                    <span className="text-xl">🌍</span> <span className="ml-2">Countries</span>
+                  </h3>
+                  <ul className="space-y-2">
+                    {locations.countries.map((country, idx) => (
+                      <li key={idx} className="text-gray-700">
+                        <span className="text-indigo-600 mr-2">✓</span>{country}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* States */}
+              {locations.states && locations.states.length > 0 && (
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg shadow">
+                  <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center">
+                    <span className="text-xl">📍</span> <span className="ml-2">States</span>
+                  </h3>
+                  <ul className="space-y-2 max-h-64 overflow-y-auto">
+                    {locations.states.map((state, idx) => (
+                      <li key={idx} className="text-gray-700">
+                        <span className="text-blue-600 mr-2">✓</span>{state}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Cities */}
+              {locations.cities && locations.cities.length > 0 && (
+                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 p-6 rounded-lg shadow">
+                  <h3 className="text-lg font-semibold mb-4 text-cyan-800 flex items-center">
+                    <span className="text-xl">🏙️</span> <span className="ml-2">Cities</span>
+                  </h3>
+                  <ul className="space-y-2 max-h-64 overflow-y-auto">
+                    {locations.cities.map((city, idx) => (
+                      <li key={idx} className="text-gray-700">
+                        <span className="text-cyan-600 mr-2">✓</span>{city}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Pincodes */}
+              {locations.pincodes && locations.pincodes.length > 0 && (
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg shadow">
+                  <h3 className="text-lg font-semibold mb-4 text-purple-800 flex items-center">
+                    <span className="text-xl">📬</span> <span className="ml-2">Pin Codes</span>
+                  </h3>
+                  <ul className="space-y-2 max-h-64 overflow-y-auto">
+                    {locations.pincodes.map((pin, idx) => (
+                      <li key={idx} className="text-gray-700">
+                        <span className="text-purple-600 mr-2">✓</span>{pin}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
     <Footer />

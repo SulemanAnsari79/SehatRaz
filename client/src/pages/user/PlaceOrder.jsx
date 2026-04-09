@@ -166,7 +166,6 @@ const PlaceOrder = () => {
           {/* Page Header */}
           <div className="bg-white p-6 rounded-xl shadow mb-6">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">My Orders</h1>
-            <p className="text-gray-600">View all your orders and manage returns/cancellations</p>
           </div>
 
           {/* Success Message */}
@@ -211,140 +210,116 @@ const PlaceOrder = () => {
                     '  border-gray-300'
                   }`}>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                      <div className="bg-white p-3 rounded-lg">
-                        <p className="text-sm text-gray-500 font-bold">Order ID: {order._id?.substring(0, 12)}</p>
-                        <p className="text-sm text-gray-500">Order Placed: {new Date(order.createdAt).toLocaleDateString("en-GB")}</p>
-                        {order.deliveredAt && (
-                          <p className="text-sm text-gray-500">Delivered: {new Date(order.deliveredAt).toLocaleDateString("en-GB")}</p>
-                        )}
-                        <div className="mt-2">
-                          <span className={`font-medium px-3 py-1 rounded-full text-white inline-block mb-2 ${
-                            order.status === 'Delivered' ? 'bg-green-600' :
-                            order.status === 'Shipped' ? 'bg-blue-600' :
-                            order.status === 'Processing' ? 'bg-yellow-600' :
-                            order.status === 'Pending' ? 'bg-orange-600' :
-                            order.status === 'Cancelled' ? 'bg-red-600' :
-                            'bg-gray-600'
-                          }`}>
-                            {order.status || 'Placed'}
-                          </span>
-                          {order.paymentStatus && (
-                            <span className={`text-xs font-medium px-2 py-1 rounded block w-fit ${
+                    {/* Main Order Info - Three Column Layout */}
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3 mb-2">
+                      {/* Order ID and Date */}
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-700">Order Id: #{order._id?.substring(0, 8)}</p>
+                        <p className="text-sm font-semibold text-gray-700 mt-1">
+                          Order Placed: {new Date(order.createdAt).toLocaleDateString("en-GB")}
+                        </p>
+                      </div>
+
+                      {/* Order Name and Amount */}
+                      <div className="min-w-0  md:text-center">
+                        <p className="text-3xl font-bold text-gray-700 truncate">
+                          {order.items && Array.isArray(order.items) && order.items.length > 0 
+                            ? `${order.items[0].name || 'Product'}${order.items.length > 1 ? ` +${order.items.length - 1} more` : ''}`
+                            : 'No items'
+                          }
+                        </p>
+                        <span className="font-bold">INR : </span>
+                        <span className="text-lg font-bold text-indigo-600 mt-1">₹{(order.totalAmount || 0).toFixed(2)}</span>
+                      </div>
+
+                      {/* Order Status and Payment Status */}
+                      <div className="min-w-0 md:text-right">
+                        <span className="text-md font-semibold text-gray-700 ">Order Status : </span>
+                        <span className={`inline-block text-sm font-semibold px-2 py-1  rounded text-white mt-1 ${
+                          order.status === 'Delivered' ? 'bg-green-600' :
+                          order.status === 'Shipped' ? 'bg-blue-600' :
+                          order.status === 'Processing' ? 'bg-yellow-600' :
+                          order.status === 'Pending' ? 'bg-orange-600' :
+                          order.status === 'Cancelled' ? 'bg-red-600' :
+                          'bg-gray-600'
+                        }`}>
+                          {order.status || 'Placed'}
+                        </span>
+                        {order.paymentStatus && (
+                          <div className="mt-2">
+                            <span className="text-md font-semibold text-gray-700 ">Payment Status : </span>
+                            <span className={`text-sm font-semibold px-2 py-0.5 rounded inline-block mt-1 ${
                               order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' :
                               order.paymentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
                               'bg-red-100 text-red-700'
                             }`}>
-                              Payment: {order.paymentStatus}
+                              {order.paymentStatus}
                             </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 bg-white p-2 rounded-lg  ">
-                        {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
-                          order.items.map((item, itemIndex) => (
-                            <div key={itemIndex} className="flex gap-3 bg-gray-50 p-2 rounded-lg">
-                              <div className="shrink-0">
-                                {item.image ? (
-                                  <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded" />
-                                ) : (
-                                  <div className="w-14 h-14 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                                    No Image
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex-1">
-                                <p className="font-semibold text-sm text-gray-800">{item.name || 'Product'}</p>
-                                <p className="text-xs text-gray-500">Size: {item.size || 'N/A'} | Qty: {item.quantity}</p>
-                                <p className="font-medium text-sm text-indigo-600">₹{(item.price * item.quantity).toFixed(2)}</p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-gray-500">No items in order</p>
+                          </div>
                         )}
-                      </div>
-
-                      <div className="bg-white p-3 rounded-lg  ">
-                        <p className="text-sm text-gray-600">Payment Method: {order.paymentMethod || 'N/A'}</p>
-                        <p className="font-semibold text-base mt-1">Total Amount: ₹{(order.totalAmount || 0).toFixed(2)}</p>
+                        {order.status === 'Delivered' && (
+                          <div className={`inline-block mt-2 text-xs font-semibold px-2 py-1 rounded ${
+                            getRemainingDays(order) <= 2 
+                              ? 'bg-red-100 text-red-700' 
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {getRemainingDays(order)}d left
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Cancel Reason Display */}
-                    {order.cancelReason && (
-                      <div className="bg-red-50 border border-red-200 p-3 rounded-lg mb-4">
-                        <p className="text-sm font-semibold text-red-700">❌ Cancellation Reason:</p>
-                        <p className="text-sm text-red-600">{order.cancelReason}</p>
-                      </div>
-                    )}
+                    {/* Status Messages - Compact Display */}
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {order.deliveredAt && (
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                          ✓ Delivered {new Date(order.deliveredAt).toLocaleDateString("en-GB")}
+                        </span>
+                      )}
+                      {order.cancelReason && (
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                          ❌ {order.cancelReason}
+                        </span>
+                      )}
+                      {order.returnRequest?.status && order.returnRequest?.status !== 'None' && (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                          🔄 Return: {order.returnRequest.status}
+                        </span>
+                      )}
+                      {order.replaceRequest?.status && order.replaceRequest?.status !== 'None' && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                          🔀 Replace: {order.replaceRequest.status}
+                        </span>
+                      )}
+                    </div>
 
-                    {/* Return/Replace Status Display */}
-                    {order.returnRequest?.status && order.returnRequest?.status !== 'None' && (
-                      <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg mb-4">
-                        <p className="text-sm font-semibold text-yellow-700">🔄 Return Request Status: {order.returnRequest.status}</p>
-                        <p className="text-sm text-yellow-600">Reason: {order.returnRequest.reason}</p>
-                        {order.returnRequest.adminNotes && (
-                          <p className="text-sm text-yellow-600 mt-1">Admin Notes: {order.returnRequest.adminNotes}</p>
-                        )}
-                      </div>
-                    )}
+                    {/* Action Buttons - Horizontal Compact */}
+                    <div className="flex gap-1.5 flex-wrap items-center">
+                      {canCancelOrder(order) && (
+                        <button
+                          onClick={() => setShowCancelModal(order._id)}
+                          className="bg-red-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-red-600 transition"
+                        >
+                          ❌ Cancel
+                        </button>
+                      )}
 
-                    {order.replaceRequest?.status && order.replaceRequest?.status !== 'None' && (
-                      <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg mb-4">
-                        <p className="text-sm font-semibold text-blue-700">🔀 Replacement Request Status: {order.replaceRequest.status}</p>
-                        <p className="text-sm text-blue-600">Reason: {order.replaceRequest.reason}</p>
-                        {order.replaceRequest.adminNotes && (
-                          <p className="text-sm text-blue-600 mt-1">Admin Notes: {order.replaceRequest.adminNotes}</p>
-                        )}
-                      </div>
-                    )}
+                      {canReturnOrReplace(order) && order.returnRequest?.status === 'None' && (
+                        <button
+                          onClick={() => setShowReturnModal(order._id)}
+                          className="bg-orange-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-orange-600 transition"
+                        >
+                          📦 Return
+                        </button>
+                      )}
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 flex-wrap items-center justify-between">
-                      <div className="flex gap-2 flex-wrap">
-                        {/* Cancel Button */}
-                        {canCancelOrder(order) && (
-                          <button
-                            onClick={() => setShowCancelModal(order._id)}
-                            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm font-semibold"
-                          >
-                            ❌ Cancel Order
-                          </button>
-                        )}
-
-                        {/* Return Button */}
-                        {canReturnOrReplace(order) && order.returnRequest?.status === 'None' && (
-                          <button
-                            onClick={() => setShowReturnModal(order._id)}
-                            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition text-sm font-semibold"
-                          >
-                            📦 Return Product
-                          </button>
-                        )}
-
-                        {/* Replace Button */}
-                        {canReturnOrReplace(order) && order.replaceRequest?.status === 'None' && (
-                          <button
-                            onClick={() => setShowReplaceModal(order._id)}
-                            className="bg-violet-500 text-white px-4 py-2 rounded-lg hover:bg-violet-600 transition text-sm font-semibold"
-                          >
-                            🔄 Replace Product
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Days Remaining Info */}
-                      {order.status === 'Delivered' && (
-                        <div className={`text-sm font-semibold px-3 py-2 rounded-lg ${
-                          getRemainingDays(order) <= 2 
-                            ? 'bg-red-100 text-red-700' 
-                            : 'bg-green-100 text-green-700'
-                        }`}>
-                          {getRemainingDays(order)} days left
-                        </div>
+                      {canReturnOrReplace(order) && order.replaceRequest?.status === 'None' && (
+                        <button
+                          onClick={() => setShowReplaceModal(order._id)}
+                          className="bg-violet-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-violet-600 transition"
+                        >
+                          🔄 Replace
+                        </button>
                       )}
                     </div>
 

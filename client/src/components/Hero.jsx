@@ -14,7 +14,7 @@ const Hero = () => {
   }
 
   return (
-    <div className="bg-green-50 py-10 overflow-hidden">
+    <div className="py-10 overflow-hidden">
       
       {/* Heading */}
       <h2 className="text-3xl font-bold text-center mb-6">
