@@ -1,4 +1,5 @@
 import User from '../models/userModel.js';
+import Notice from '../models/noticeModel.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
@@ -206,7 +207,7 @@ export const uploadProfileImage = async (req, res) => {
 
 export const getAllUsers = async (req,res)=>{
   try{
-    const users = await User.find().select("-password");
+                const users = await User.find().select("-password").sort({ createdAt: -1 });
     res.json(users);
   }catch(err){
     res.status(500).json({message:"Server error"});
@@ -448,5 +449,37 @@ export const resetPasswordWithOtp = async (req, res) => {
     } catch (error) {
         console.error('Reset password with OTP error:', error);
         res.status(500).json({ success: false, message: 'Failed to reset password' });
+    }
+};
+
+export const submitContactMessage = async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body || {};
+
+        if (!name || !email || !subject || !message) {
+            return res.status(400).json({ success: false, message: 'All fields are required' });
+        }
+
+        if (!String(email).includes('@')) {
+            return res.status(400).json({ success: false, message: 'Invalid email format' });
+        }
+
+        await Notice.create({
+            subject: String(subject).trim(),
+            message: `From: ${String(name).trim()} (${String(email).trim()})\n\n${String(message).trim()}`,
+            scope: 'group',
+            group: 'contact-us',
+            recipientType: 'admin',
+            recipientIds: ['admin'],
+            totalRecipients: 1,
+            sentCount: 1,
+            failedCount: 0,
+            createdBy: String(email).trim(),
+        });
+
+        return res.status(201).json({ success: true, message: 'Message sent successfully' });
+    } catch (error) {
+        console.error('Submit contact message error:', error);
+        return res.status(500).json({ success: false, message: 'Failed to send message' });
     }
 };

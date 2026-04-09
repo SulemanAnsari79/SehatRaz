@@ -90,7 +90,7 @@ const Appointment = () => {
   const [doctorId, setDoctorId] = useState(initialDoctorId);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [mode, setMode] = useState("in_person");
+  const mode = "online";
   const [comment, setComment] = useState("");
 
   const [availability, setAvailability] = useState({
@@ -413,16 +413,8 @@ const Appointment = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Consultation Type</label>
-                <select
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-slate-400"
-                >
-                  <option value="in_person">In-person</option>
-                  <option value="online">Online (Video Call + Chat)</option>
-                </select>
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm text-cyan-800">
+                Consultation Type: <span className="font-semibold">Online (Video Call + Chat)</span>
               </div>
 
               <button

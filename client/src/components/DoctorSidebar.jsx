@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getDoctorAppointments, getDoctorProfile } from "../services/DoctorService.js";
+import { getDoctorAppointments, getDoctorProfile, getMyLeaveRequests } from "../services/DoctorService.js";
 // import { FiMenu } from "react-icons/fi";
 
 const SEEN_BADGES_STORAGE_KEY = "doctor_sidebar_seen_badges";
@@ -20,6 +20,7 @@ const DoctorSidebar = () => {
   const [badgeCounts, setBadgeCounts] = useState({
     appointments: 0,
     profile: 0,
+    leaveRequests: 0,
   });
   const [seenCounts, setSeenCounts] = useState(getInitialSeenCounts);
 
@@ -53,9 +54,10 @@ const DoctorSidebar = () => {
 
   const fetchBadgeCounts = async () => {
     try {
-      const [appointmentsRes, profileRes] = await Promise.all([
+      const [appointmentsRes, profileRes, leaveRequestsRes] = await Promise.all([
         getDoctorAppointments(),
         getDoctorProfile(),
+        getMyLeaveRequests(),
       ]);
 
       const appointments = Array.isArray(appointmentsRes?.data?.appointments)
@@ -70,9 +72,21 @@ const DoctorSidebar = () => {
       const doctor = profileRes?.data?.doctor || {};
       const profileCount = doctor?.verified === false ? 1 : 0;
 
+      const leaveRequestsPayload = leaveRequestsRes?.data;
+      const leaveRequests = Array.isArray(leaveRequestsPayload)
+        ? leaveRequestsPayload
+        : Array.isArray(leaveRequestsPayload?.requests)
+          ? leaveRequestsPayload.requests
+          : [];
+
+      const pendingLeaveCount = leaveRequests.filter(
+        (item) => String(item?.status || "").toLowerCase() === "pending"
+      ).length;
+
       setBadgeCounts({
         appointments: appointmentCount,
         profile: profileCount,
+        leaveRequests: pendingLeaveCount,
       });
     } catch {
       // Keep sidebar responsive even when count APIs fail.
@@ -88,6 +102,7 @@ const DoctorSidebar = () => {
   const menuItems = [
     { name: "Dashboard", path: "/doctor" },
     { name: "Appointments", path: "/doctor/appointments", badgeKey: "appointments" },
+    { name: "Leave Requests", path: "/doctor/leave-requests", badgeKey: "leaveRequests" },
     { name: "Patients", path: "/doctor/patients" },
     { name: "Profile", path: "/doctor/profile", badgeKey: "profile" },
   ];

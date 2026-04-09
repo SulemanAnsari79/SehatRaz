@@ -95,7 +95,7 @@ const attachOnlineSessionIfNeeded = async (appointment) => {
 
     const startTime = parseAppointmentDateTime(appointment.date, appointment.time);
     if (startTime) {
-        appointment.joinWindowStart = new Date(startTime.getTime() - 10 * 60 * 1000);
+        appointment.joinWindowStart = new Date(startTime.getTime() - 5 * 60 * 1000);
         appointment.joinWindowEnd = new Date(startTime.getTime() + 30 * 60 * 1000);
     }
     appointment.consultationStatus = 'scheduled';
@@ -203,7 +203,7 @@ export const getMyAppointments = async (req, res) => {
 
         const appointments = await Appointment.find({ user: userId })
             .populate('doctor', '-password')
-            .sort({ date: -1 });
+            .sort({ createdAt: -1, date: -1, time: -1 });
 
         res.status(200).json({ success: true, appointments });
     } catch (error) {
@@ -310,7 +310,7 @@ export const getAllAppointments = async (req, res) => {
         const appointments = await Appointment.find()
             .populate('user', '-password')
             .populate('doctor', '-password')
-            .sort({ date: -1 });
+            .sort({ createdAt: -1, date: -1, time: -1 });
         res.status(200).json({ success: true, appointments });
     }
     catch (error) {
@@ -328,7 +328,7 @@ export const getDoctorAppointments = async (req, res) => {
 
         const appointments = await Appointment.find({ doctor: doctorId })
             .populate('user', '-password')
-            .sort({ date: -1 });
+            .sort({ createdAt: -1, date: -1, time: -1 });
 
         res.status(200).json({ success: true, appointments });
     } catch (error) {

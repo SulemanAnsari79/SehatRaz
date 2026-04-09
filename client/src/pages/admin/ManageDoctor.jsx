@@ -14,6 +14,21 @@ import {
   FiDownload,
 } from "react-icons/fi";
 
+const buildDoctorCsv = (rows) => {
+  const headers = ["Name", "Specialization", "Email", "Experience", "Status"];
+  const lines = rows.map((doctor) => [
+    doctor.name || "",
+    doctor.specialization || "",
+    doctor.email || "",
+    String(doctor.experience ?? ""),
+    doctor.verified ? "Verified" : "Pending",
+  ]);
+
+  return [headers, ...lines]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+};
+
 const ManageDoctor = () => {
   const [doctors, setDoctors] = useState([]);
   const [filteredDoctors, setFilteredDoctors] = useState([]);
@@ -80,7 +95,14 @@ const ManageDoctor = () => {
       setLoading(true);
       setError(null);
       const response = await getDoctors();
-      setDoctors(response.data || []);
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setDoctors(
+        [...rows].sort((a, b) => {
+          const createdA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const createdB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return createdA - createdB;
+        })
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load doctors");
       console.error("Fetch doctors error:", err);
@@ -228,6 +250,20 @@ const ManageDoctor = () => {
     }
   };
 
+  const handleExportDoctors = () => {
+    const csv = buildDoctorCsv(filteredDoctors.length > 0 ? filteredDoctors : doctors);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "doctors.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    toast.success("Doctor list exported");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -296,7 +332,10 @@ const ManageDoctor = () => {
           </div>
 
           {/* Export */}
-          <button className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+          <button
+            onClick={handleExportDoctors}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+          >
             <FiDownload size={20} />
             Export
           </button>

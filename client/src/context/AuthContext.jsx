@@ -75,9 +75,15 @@ const AuthProvider = ({ children }) => {
   };
 
   const addToCart = async (itemId, size) => {
-    if (!size) {
-      toast.error("Select product size");
-      return;
+    // If size isn't explicitly provided, auto-pick Medium or first available size.
+    let chosenSize = size;
+    if (!chosenSize) {
+      const product = products.find((item) => String(item._id) === String(itemId));
+      const availableSizes = Array.isArray(product?.sizes) ? product.sizes : [];
+      chosenSize =
+        availableSizes.find((item) => String(item).toUpperCase() === "M") ||
+        availableSizes[0] ||
+        "";
     }
 
     // Ensure itemId is a string for consistent key matching
@@ -88,7 +94,7 @@ const AuthProvider = ({ children }) => {
       ...prev,
       [productId]: {
         ...(prev[productId] || {}),
-        [size]: (prev[productId]?.[size] || 0) + 1
+        [chosenSize]: (prev[productId]?.[chosenSize] || 0) + 1
       }
     }));
 
@@ -96,7 +102,7 @@ const AuthProvider = ({ children }) => {
       try {
         const response = await axios.post(
           `${normalizedBackendUrl}/api/cart/add`,
-          { productId, quantity: 1, size },
+          { productId, quantity: 1, size: chosenSize },
           { headers: { Authorization: `Bearer ${token}` } }
         );
 

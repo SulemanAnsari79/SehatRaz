@@ -1,7 +1,7 @@
 import React, { useState ,useContext} from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { ShoppingCart, User, Menu, X } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Bot } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,6 +39,14 @@ const Navbar = () => {
 
           {/* Icons - Right */}
           <div className="flex items-center space-x-4">
+            <Link
+              to="/bookappointment"
+              title="Quick AI Consultation"
+              className="relative text-cyan-600 hover:text-cyan-700 transition duration-200"
+            >
+              <Bot size={24} />
+            </Link>
+
             {/* Cart Icon */}
             <Link
               to="/cart"

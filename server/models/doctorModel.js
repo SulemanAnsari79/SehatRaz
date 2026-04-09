@@ -6,6 +6,7 @@ const doctorSchema = new mongoose.Schema({
   password:{type:String,required:true},
   phone:{type:String,default:""},
   specialization:{type:String,default:""},
+  licenseNumber:{type:String,default:""},
   experience:{type:Number,default:0},
   qualifications:{type:String,default:""},
   feesPerConsultation:{type:Number,default:0},

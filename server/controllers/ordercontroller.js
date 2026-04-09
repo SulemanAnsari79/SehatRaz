@@ -82,9 +82,13 @@ const buildSecureOrder = async (items) => {
             throw new Error('Invalid item in order');
         }
 
-        const product = await Product.findById(productId).select('name price stock images category');
+        const product = await Product.findById(productId).select('name price stock images category isActive');
         if (!product) {
             throw new Error(`Product not found: ${productId}`);
+        }
+
+        if (product.isActive === false) {
+            throw new Error(`Product is inactive: ${product.name}`);
         }
 
         if (product.stock < quantity) {
@@ -110,6 +114,20 @@ const buildSecureOrder = async (items) => {
     const totalAmount = computedTotal + DELIVERY_FEE;
 
     return { secureItems, totalAmount };
+};
+
+const adjustProductStock = async (items, direction) => {
+    const delta = Number(direction || 0);
+    if (!delta || !Array.isArray(items) || items.length === 0) {
+        return;
+    }
+
+    for (const item of items) {
+        await Product.updateOne(
+            { _id: item.productId },
+            { $inc: { stock: delta * Number(item.quantity || 0) } }
+        );
+    }
 };
 
 const createEmailTransporter = () =>
@@ -213,6 +231,13 @@ export const createOrder = async (req, res) => {
 
         await order.save();
 
+        try {
+            await adjustProductStock(secureItems, -1);
+        } catch (stockError) {
+            await Order.findByIdAndDelete(order._id);
+            throw stockError;
+        }
+
         user.cart = [];
         await user.save();
 
@@ -264,6 +289,13 @@ export const createOnlineOrder = async (req, res) => {
         });
 
         await order.save();
+
+        try {
+            await adjustProductStock(secureItems, -1);
+        } catch (stockError) {
+            await Order.findByIdAndDelete(order._id);
+            throw stockError;
+        }
 
         return res.status(201).json({
             success: true,
@@ -400,6 +432,11 @@ export const updateOrderStatus = async (req, res) => {
         const { id } = req.params;
         const { status, paymentStatus, notes } = req.body;
 
+        const existingOrder = await Order.findById(id);
+        if (!existingOrder) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
         const updateData = {};
         let sendEmail = false;
 
@@ -433,8 +470,8 @@ export const updateOrderStatus = async (req, res) => {
             { new: true }
         ).populate('user', '-password');
 
-        if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
+        if (updateData.status === 'Cancelled' && existingOrder.status !== 'Cancelled') {
+            await adjustProductStock(existingOrder.items, 1);
         }
 
         if (sendEmail && order.shippingDetails && order.shippingDetails.email) {
@@ -542,6 +579,8 @@ export const cancelOrder = async (req, res) => {
         order.cancelReason = reason || 'User requested cancellation';
         await order.save();
 
+        await adjustProductStock(order.items, 1);
+
         return res.status(200).json({ success: true, message: 'Order cancelled successfully', order });
     } catch (error) {
         console.error('Cancel order error:', error);
@@ -550,7 +589,7 @@ export const cancelOrder = async (req, res) => {
 };
 
 export const getAllOrders = async (req, res) => {
-    const orders = await Order.find().populate('user');
+    const orders = await Order.find().populate('user').populate('assignedTo', 'name email phone').sort({ createdAt: 1 });
     return res.json({ success: true, orders });
 };
 

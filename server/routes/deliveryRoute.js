@@ -5,6 +5,7 @@ import {
   getMyAssignedOrders,
   generateDeliveryOtp,
   verifyDeliveryOtp,
+  markOrderOutForDelivery,
   getDeliveryProfile,
   changeDeliveryPassword,
   deleteDeliveryAccount,
@@ -20,6 +21,7 @@ deliveryRouter.get("/profile", deliveryAuth, getDeliveryProfile);
 deliveryRouter.put("/change-password", deliveryAuth, changeDeliveryPassword);
 deliveryRouter.delete("/delete-account", deliveryAuth, deleteDeliveryAccount);
 deliveryRouter.get("/my-orders", deliveryAuth, getMyAssignedOrders);
+deliveryRouter.put("/orders/:orderId/out-for-delivery", deliveryAuth, markOrderOutForDelivery);
 deliveryRouter.post("/orders/:orderId/generate-otp", deliveryAuth, generateDeliveryOtp);
 deliveryRouter.post("/orders/:orderId/verify-otp", deliveryAuth, verifyDeliveryOtp);
 

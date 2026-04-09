@@ -32,6 +32,7 @@ import ManageOrderRequests from "./pages/admin/ManageOrderRequests.jsx";
 import ManageProducts from "./pages/admin/ManageProduct.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import ManageDeliveryMen from "./pages/admin/ManageDeliveryMen.jsx";
+import LocationControl from "./pages/admin/LocationControl.jsx";
 import ManageAppointments from "./pages/admin/ManageAppointments.jsx";
 import Notices from "./pages/admin/Notices.jsx";
 import DoctorLayout from "./layouts/DoctorLayout.jsx";
@@ -40,6 +41,7 @@ import DoctorDashboard from "./pages/doctor/DoctorDashboard.jsx";
 import Appointments from "./pages/doctor/Appointments.jsx";
 import Patients from "./pages/doctor/Patients.jsx";
 import DoctorProfile from "./pages/doctor/DoctorProfile.jsx";
+import DoctorLeaveRequests from "./pages/doctor/LeaveRequests.jsx";
 
 import DeliveryLayout from "./layouts/DeliveryLayout.jsx";
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard.jsx";
@@ -90,6 +92,7 @@ function App() {
             <Route path="order-requests" element={<ManageOrderRequests />} />
             <Route path="products" element={<ManageProducts />} />
             <Route path="delivery-men" element={<ManageDeliveryMen />} />
+            <Route path="location-control" element={<LocationControl />} />
             <Route path="notices" element={<Notices />} />
           </Route>
           </Route>
@@ -100,6 +103,7 @@ function App() {
             <Route path="/doctor" element={<DoctorLayout />}>
             <Route index element={<DoctorDashboard />} />
             <Route path="appointments" element={<Appointments />} /> 
+            <Route path="leave-requests" element={<DoctorLeaveRequests />} />
             <Route path="patients" element={<Patients />} /> 
             <Route path="profile" element={<DoctorProfile />} />  
             <Route path="consultation/:appointmentId" element={<OnlineConsultation />} />

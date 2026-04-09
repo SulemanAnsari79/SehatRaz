@@ -76,7 +76,15 @@ const ManageAppointments = () => {
       setError(null);
       const response = await getAppointments();
       const appts = response.data?.appointments || response.data || [];
-      setAppointments(appts);
+      const sorted = [...appts].sort((a, b) => {
+        const createdA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const createdB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (createdA !== createdB) return createdB - createdA;
+        const dateA = a?.date ? new Date(`${a.date} ${a.time || ""}`).getTime() : 0;
+        const dateB = b?.date ? new Date(`${b.date} ${b.time || ""}`).getTime() : 0;
+        return dateB - dateA;
+      });
+      setAppointments(sorted);
     } catch (err) {
       console.error("Fetch appointments error:", err);
       const errorMsg = err.response?.data?.message || err.message || "Failed to load appointments";

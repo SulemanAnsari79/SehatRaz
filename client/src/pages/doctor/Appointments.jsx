@@ -111,6 +111,9 @@ const Appointments = () => {
         );
       })
       .sort((a, b) => {
+        const createdA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const createdB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (createdA !== createdB) return createdB - createdA;
         if (!a.isValidDate) return 1;
         if (!b.isValidDate) return -1;
         return b.dateObj - a.dateObj;

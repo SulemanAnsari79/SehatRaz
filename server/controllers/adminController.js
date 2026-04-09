@@ -139,7 +139,7 @@ const applyDoctorLeaveAndReschedule = async (doctorId, leaveDate) => {
     if (appointment.mode === "online") {
       const start = parseAppointmentDateTime(assigned.date, assigned.time);
       if (start) {
-        appointment.joinWindowStart = new Date(start.getTime() - 10 * 60 * 1000);
+        appointment.joinWindowStart = new Date(start.getTime() - 5 * 60 * 1000);
         appointment.joinWindowEnd = new Date(start.getTime() + 30 * 60 * 1000);
       }
       appointment.consultationStatus = "scheduled";
@@ -477,7 +477,7 @@ const getUserById = async (req,res)=>{
 };
 
 const getAllDoctors = async (req,res)=>{
-  const doctors = await Doctor.find();
+  const doctors = await Doctor.find().sort({ createdAt: 1 });
   res.json(doctors);
 };
 
@@ -531,7 +531,7 @@ const rejectDoctor = async (req,res)=>{
 
 const createDoctor = async (req, res) => {
   try {
-    const { name, email, password, phone, specialization, experience, qualifications } = req.body;
+    const { name, email, password, phone, specialization, experience, qualifications, licenseNumber } = req.body;
 
     // Validate required fields
     if (!name || !email || !password || !phone || !specialization || experience === undefined || !qualifications) {
@@ -554,6 +554,7 @@ const createDoctor = async (req, res) => {
       password: hashedPassword,
       phone,
       specialization,
+      licenseNumber: String(licenseNumber || "").trim(),
       experience: parseInt(experience),
       qualifications,
       verified: true // Admin-created doctors are verified by default
@@ -635,7 +636,7 @@ const createProduct = async (req, res) => {
 }
 
 const getAllProducts = async (req,res)=>{
-  const products = await Product.find();
+  const products = await Product.find().sort({ createdAt: -1 });
   res.json(products);
 };
 
@@ -687,7 +688,8 @@ const deleteOrder = async (req,res)=>{
 const getAllAppointments = async (req,res)=>{
   const appointments = await Appointment.find()
     .populate("user")
-    .populate("doctor");
+    .populate("doctor")
+    .sort({ createdAt: -1 });
 
   res.json(appointments);
 };
@@ -726,6 +728,7 @@ const getAdminStats = async (req,res)=>{
 
     const totalAppointments = await Appointment.countDocuments();
     const pendingAppointments = await Appointment.countDocuments({ status: { $in: ['Booked', 'Pending'] } });
+    const pendingLeaveRequests = await LeaveRequest.countDocuments({ status: 'Pending' });
 
     res.json({
       success: true,
@@ -735,7 +738,8 @@ const getAdminStats = async (req,res)=>{
       totalOrders,
       totalRevenue,
       totalAppointments,
-      pendingAppointments
+      pendingAppointments,
+      pendingLeaveRequests
     });
   } catch (error) {
     console.error('Get admin stats error:', error);
@@ -771,7 +775,7 @@ export const createDeliveryMan = async (req, res) => {
 
 export const getAllDeliveryMen = async (req, res) => {
   try {
-    const deliveryMen = await DeliveryMan.find().select("-password");
+    const deliveryMen = await DeliveryMan.find().select("-password").sort({ createdAt: 1 });
     res.status(200).json({ success: true, deliveryMen });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
@@ -876,13 +880,13 @@ export const assignOrderToDelivery = async (req, res) => {
 
     const order = await Order.findByIdAndUpdate(
       orderId,
-      { assignedTo: deliveryManId, status: "Out for Delivery" },
+      { assignedTo: deliveryManId },
       { new: true }
     ).populate("assignedTo", "name email phone");
 
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
-    res.status(200).json({ success: true, message: "Order assigned and status set to Out for Delivery", order });
+    res.status(200).json({ success: true, message: "Order assigned to delivery man successfully", order });
   } catch (error) {
     console.error("Assign order error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -900,7 +904,7 @@ export const getLeaveRequests = async (req, res) => {
 
     const requests = await LeaveRequest.find(filter)
       .populate("doctor", "name email specialization")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: 1 });
 
     return res.status(200).json({ success: true, requests });
   } catch (error) {

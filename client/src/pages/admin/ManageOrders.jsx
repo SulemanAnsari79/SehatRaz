@@ -125,7 +125,7 @@ const ManageOrders = () => {
       );
       setShowAssignModal(false);
       setError(null);
-      setSuccessMessage("Order assigned to delivery man successfully!");
+      setSuccessMessage("Order assigned to delivery man successfully. Status will be updated by delivery staff.");
       setTimeout(() => setSuccessMessage(null), 3000);
       fetchOrders();
     } catch (err) {
@@ -432,6 +432,13 @@ const ManageOrders = () => {
                         <div className="text-sm">
                           <p className="font-medium text-gray-900">{order.shippingDetails?.fullName}</p>
                           <p className="text-gray-500 text-xs">{order.shippingDetails?.email}</p>
+                          {order.assignedTo ? (
+                            <p className="text-gray-500 text-xs mt-1">
+                              Delivery Man: <span className="font-medium text-gray-700">{order.assignedTo.name || "Assigned"}</span>
+                            </p>
+                          ) : (
+                            <p className="text-gray-400 text-xs mt-1">Delivery Man: Not assigned</p>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900">
@@ -590,6 +597,22 @@ const ManageOrders = () => {
                 </p>
               </div>
 
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <FiTruck className="text-indigo-600" />
+                  Delivery Assignment
+                </h3>
+                {selectedOrder.assignedTo ? (
+                  <div className="space-y-1 text-sm text-gray-700">
+                    <p className="font-medium">{selectedOrder.assignedTo.name || "Assigned Delivery Man"}</p>
+                    <p>{selectedOrder.assignedTo.email || "No email"}</p>
+                    <p>{selectedOrder.assignedTo.phone || "No phone"}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No delivery man assigned yet.</p>
+                )}
+              </div>
+
               {/* Order Items */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -742,7 +765,7 @@ const ManageOrders = () => {
               </button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              Assigning this order will also set its status to <strong>Out for Delivery</strong>.
+              Assigning this order will keep its current status. The delivery man can mark it as <strong>Out for Delivery</strong>.
             </p>
             {deliveryMen.length === 0 ? (
               <p className="text-gray-500 text-sm text-center py-6">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createLeaveRequest, getDoctorAppointments, getDoctorProfile, getMyLeaveRequests } from "../../services/DoctorService.js";
+import { getDoctorAppointments, getDoctorProfile } from "../../services/DoctorService.js";
 import StatCard from "../../components/StatCard.jsx";
 import {
   FiCalendar,
@@ -26,10 +26,6 @@ const DoctorDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [requestDate, setRequestDate] = useState("");
-  const [requestReason, setRequestReason] = useState("");
-  const [leaveRequests, setLeaveRequests] = useState([]);
-  const [leaveLoading, setLeaveLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,10 +37,9 @@ const DoctorDashboard = () => {
       setLoading(true);
       setError(null);
 
-      const [appointmentsResult, profileResult, leaveRequestsResult] = await Promise.allSettled([
+      const [appointmentsResult, profileResult] = await Promise.allSettled([
         getDoctorAppointments(),
         getDoctorProfile(),
-        getMyLeaveRequests(),
       ]);
 
       // Handle appointments data
@@ -69,7 +64,7 @@ const DoctorDashboard = () => {
         if (Array.isArray(appointmentsData) && appointmentsData.length > 0) {
           const total = appointmentsData.length;
           const pending = appointmentsData.filter(
-            (apt) => apt.status?.toLowerCase() === "pending" || apt.status?.toLowerCase() === "scheduled"
+            (apt) => ["booked", "pending", "scheduled"].includes(String(apt.status || "").toLowerCase())
           ).length;
           const completed = appointmentsData.filter(
             (apt) => apt.status?.toLowerCase() === "completed"
@@ -120,16 +115,6 @@ const DoctorDashboard = () => {
         console.error("Failed to fetch profile:", error);
       }
 
-      if (leaveRequestsResult.status === "fulfilled") {
-        const payload = leaveRequestsResult.value?.data;
-        const rows = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.requests)
-            ? payload.requests
-            : [];
-        setLeaveRequests(rows);
-      }
-
       const failedRequests = [appointmentsResult, profileResult].filter(
         (result) => result.status === "rejected"
       );
@@ -150,12 +135,32 @@ const DoctorDashboard = () => {
     }
   };
 
+  const getAppointmentDateTime = (appointment) => {
+    if (!appointment?.date) return null;
+    const timeText = String(appointment?.time || "").trim();
+    const raw = timeText ? `${appointment.date} ${timeText}` : appointment.date;
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const fallback = new Date(appointment.date);
+    return Number.isNaN(fallback.getTime()) ? null : fallback;
+  };
+
   const upcomingAppointments = appointments
     .filter(
       (apt) =>
-        apt.status?.toLowerCase() === "pending" || apt.status?.toLowerCase() === "scheduled"
+        ["booked", "pending", "scheduled"].includes(String(apt.status || "").toLowerCase())
     )
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .filter((apt) => {
+      const dateTime = getAppointmentDateTime(apt);
+      return dateTime ? dateTime >= new Date() : true;
+    })
+    .sort((a, b) => {
+      const first = getAppointmentDateTime(a);
+      const second = getAppointmentDateTime(b);
+      if (!first) return 1;
+      if (!second) return -1;
+      return first - second;
+    })
     .slice(0, 5);
 
   const formatDate = (dateString) => {
@@ -169,31 +174,6 @@ const DoctorDashboard = () => {
   const formatTime = (timeString) => {
     if (!timeString || timeString === "Select time") return "--:--";
     return timeString;
-  };
-
-  const handleCreateLeaveRequest = async () => {
-    if (!requestDate) {
-      setError("Please select leave date first.");
-      return;
-    }
-
-    if (!requestReason.trim()) {
-      setError("Please provide a reason for leave.");
-      return;
-    }
-
-    try {
-      setLeaveLoading(true);
-      setError(null);
-      await createLeaveRequest({ date: requestDate, reason: requestReason.trim() });
-      setRequestDate("");
-      setRequestReason("");
-      await fetchDashboardData();
-    } catch (err) {
-      setError(err?.response?.data?.message || "Failed to send leave request.");
-    } finally {
-      setLeaveLoading(false);
-    }
   };
 
   if (loading) {
@@ -286,7 +266,7 @@ const DoctorDashboard = () => {
                     Upcoming Appointments
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    {upcomingAppointments.length} pending appointments
+                    {upcomingAppointments.length} upcoming appointments
                   </p>
                 </div>
                 <Link
@@ -412,6 +392,20 @@ const DoctorDashboard = () => {
               <FiArrowRight className="ml-auto text-gray-400 group-hover:text-gray-600" />
             </Link>
 
+            <Link
+              to="/doctor/leave-requests"
+              className="flex items-center gap-3 p-4 rounded-lg bg-red-50 hover:bg-red-100 transition-colors duration-200 group"
+            >
+              <div className="text-2xl text-red-600 group-hover:scale-110 transition-transform">
+                <FiAlertCircle />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Leave Requests</p>
+                <p className="text-xs text-gray-600">Request and track leaves</p>
+              </div>
+              <FiArrowRight className="ml-auto text-gray-400 group-hover:text-gray-600" />
+            </Link>
+
             <button
               onClick={fetchDashboardData}
               className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-200 text-gray-700 font-semibold text-sm"
@@ -419,70 +413,6 @@ const DoctorDashboard = () => {
               <FiLoader /> Refresh Data
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Leave Request */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">Leave Request to Admin</h3>
-            <p className="text-sm text-gray-600">
-              Send leave request to admin. Leave is applied only after admin approval.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-            <input
-              type="date"
-              value={requestDate}
-              onChange={(e) => setRequestDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-            />
-            <input
-              type="text"
-              value={requestReason}
-              onChange={(e) => setRequestReason(e.target.value)}
-              placeholder="Reason for leave"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm min-w-55"
-            />
-            <button
-              onClick={handleCreateLeaveRequest}
-              disabled={leaveLoading}
-              className="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-lg"
-            >
-              {leaveLoading ? "Sending..." : "Send Request"}
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          {leaveRequests.length > 0 ? (
-            leaveRequests.slice(0, 6).map((item) => (
-              <div key={item._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
-                <div className="text-slate-700">
-                  <span className="font-semibold">{item.date}</span>
-                  <span className="mx-2">-</span>
-                  <span>{item.reason}</span>
-                </div>
-                <div className="inline-flex items-center gap-2">
-                  <span
-                    className={`px-2 py-1 rounded-full font-semibold ${
-                      item.status === "Approved"
-                        ? "bg-green-100 text-green-700"
-                        : item.status === "Rejected"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                  {item.adminNote ? <span className="text-slate-500">Note: {item.adminNote}</span> : null}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">No leave requests yet.</p>
-          )}
         </div>
       </div>
 

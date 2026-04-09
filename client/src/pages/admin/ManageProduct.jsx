@@ -39,7 +39,7 @@ const ManageProducts = () => {
     sizes: [],
     tags: [],
     bestSeller: false,
-    stock: "",
+    stock: "0",
     discount: "0",
     isActive: true,
   });
@@ -136,7 +136,14 @@ const ManageProducts = () => {
       setLoading(true);
       setError(null);
       const response = await getProducts();
-      setProducts(response.data.products  || []);
+      const rows = response.data.products || [];
+      setProducts(
+        [...rows].sort((a, b) => {
+          const createdA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const createdB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return createdB - createdA;
+        })
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load products");
       console.error("Fetch products error:", err);
@@ -164,7 +171,7 @@ const ManageProducts = () => {
       sizes: product.sizes || [],
       tags: product.tags || [],
       bestSeller: product.bestSeller || false,
-      stock: product.stock || "",
+      stock: String(product.stock ?? 0),
       discount: product.discount || "0",
       isActive: product.isActive !== undefined ? product.isActive : true,
       images: product.images || [] // Keep for reference, but won't be sent
@@ -188,7 +195,7 @@ const ManageProducts = () => {
       sizes: [],
       tags: [],
       bestSeller: false,
-      stock: "",
+      stock: "0",
       discount: "0",
       isActive: true,
     });
@@ -325,7 +332,7 @@ const ManageProducts = () => {
           </div>
           <button
             onClick={handleAddProduct}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition"
           >
             <FiPlus size={20} />
             Add Product
@@ -707,7 +714,7 @@ const ManageProducts = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 flex items-center justify-between">
+            <div className="sticky top-0 bg-linear-to-r from-purple-500 to-purple-600 text-white p-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold">
                 {modalMode === "view"
                   ? "Product Details"
@@ -982,7 +989,7 @@ const ManageProducts = () => {
                 Close
               </button>
               {(modalMode === "edit" || modalMode === "add") && (
-                <button onClick={handleSaveProduct} className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition font-medium">
+                <button onClick={handleSaveProduct} className="px-6 py-2.5 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition font-medium">
                   {modalMode === "add" ? "Add Product" : "Save Changes"}
                 </button>
               )}

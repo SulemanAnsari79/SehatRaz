@@ -81,7 +81,14 @@ const ManageUsers = () => {
       setLoading(true);
       setError(null);
       const response = await getUsers();
-      setUsers(response.data || []);
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setUsers(
+        [...rows].sort((a, b) => {
+          const createdA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const createdB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return createdB - createdA;
+        })
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load users");
       console.error("Fetch users error:", err);

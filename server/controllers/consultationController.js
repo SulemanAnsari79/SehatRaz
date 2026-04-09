@@ -77,7 +77,7 @@ const getJoinWindow = (appointment) => {
     return { joinWindowStart: now, joinWindowEnd: now };
   }
 
-  const joinWindowStart = new Date(start.getTime() - 10 * 60 * 1000);
+  const joinWindowStart = new Date(start.getTime() - 5 * 60 * 1000);
   const joinWindowEnd = new Date(start.getTime() + 30 * 60 * 1000);
   return { joinWindowStart, joinWindowEnd };
 };

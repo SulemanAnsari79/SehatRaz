@@ -1,8 +1,47 @@
-import React from "react";
+import React, { useState } from "react";
+import { toast } from "react-toastify";
+import api from "../../services/Api.js";
 import Footer from "../../components/Footer";
 import Navbar from "../../components/Navbar";
 
 const Contact = () => {
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [sending, setSending] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim() || !form.subject.trim() || !form.message.trim()) {
+      toast.error("Please fill all fields");
+      return;
+    }
+
+    try {
+      setSending(true);
+      const response = await api.post("/user/contact-us", {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject.trim(),
+        message: form.message.trim(),
+      });
+
+      if (response?.data?.success) {
+        toast.success("Message sent successfully");
+        setForm({ name: "", email: "", subject: "", message: "" });
+      } else {
+        toast.error(response?.data?.message || "Failed to send message");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
   <>
     <Navbar />
@@ -28,37 +67,50 @@ const Contact = () => {
             Send a Message
           </h2>
 
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
 
             <input
               type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
               placeholder="Your Name"
               className="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
             />
 
             <input
               type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
               placeholder="Your Email"
               className="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
             />
 
             <input
               type="text"
+              name="subject"
+              value={form.subject}
+              onChange={handleChange}
               placeholder="Subject"
               className="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
             />
 
             <textarea
               rows="4"
+              name="message"
+              value={form.message}
+              onChange={handleChange}
               placeholder="Your Message"
               className="w-full border p-3 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
             ></textarea>
 
             <button
               type="submit"
+              disabled={sending}
               className="w-full bg-green-500 text-white py-3 rounded hover:bg-green-600 transition"
             >
-              Send Message
+              {sending ? "Sending..." : "Send Message"}
             </button>
 
           </form>

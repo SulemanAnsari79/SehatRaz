@@ -18,7 +18,7 @@ const createToken = (id, role = "doctor") => {
 
 export const doctorRegister = async (req, res) => {
     try {
-        const { name, email, password, phone, specialization, experience, qualifications } = req.body;
+        const { name, email, password, phone, specialization, experience, qualifications, licenseNumber } = req.body;
 
         // Validate required fields
         if (!name || !email || !password || !phone || !specialization || experience === undefined || !qualifications) {
@@ -41,6 +41,7 @@ export const doctorRegister = async (req, res) => {
             password: hashedPassword,
             phone,
             specialization,
+            licenseNumber: String(licenseNumber || '').trim(),
             experience: parseInt(experience),
             qualifications,
             verified: false
@@ -121,10 +122,11 @@ export const updateDoctorProfile = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
 
-        const { specialization, experience, feesPerConsultation, timings } = req.body;
+        const { specialization, experience, feesPerConsultation, timings, licenseNumber } = req.body;
         const updateData = {};
 
         if (specialization) updateData.specialization = specialization;
+        if (licenseNumber !== undefined) updateData.licenseNumber = String(licenseNumber || '').trim();
         if (experience !== undefined && experience > 0) updateData.experience = experience;
         if (feesPerConsultation !== undefined && feesPerConsultation > 0) updateData.feesPerConsultation = feesPerConsultation;
         if (timings && Array.isArray(timings)) updateData.timings = timings;
@@ -146,7 +148,7 @@ export const getVerifiedDoctors = async (req, res) => {
     try {
         const doctors = await Doctor.find({ verified: true })
             .select('-password -rejectionReason')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: 1 });
 
         return res.status(200).json({ success: true, doctors });
     } catch (error) {

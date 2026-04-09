@@ -10,7 +10,6 @@ const PlaceOrder = () => {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
-  const [activeTab, setActiveTab] = useState("all"); // all, can-cancel, can-return
   
   // Modal states
   const [showCancelModal, setShowCancelModal] = useState(null);
@@ -74,15 +73,6 @@ const PlaceOrder = () => {
     return Math.max(0, remainingDays);
   };
 
-  // Filter orders by tab
-  const getFilteredOrders = () => {
-    if (activeTab === 'can-cancel') {
-      return orders.filter(order => canCancelOrder(order));
-    } else if (activeTab === 'can-return') {
-      return orders.filter(order => canReturnOrReplace(order));
-    }
-    return orders;
-  };
 
   // Handle cancel order
   const handleCancelOrder = async (orderId) => {
@@ -165,9 +155,7 @@ const PlaceOrder = () => {
     }
   };
 
-  const filteredOrders = getFilteredOrders();
-  const canCancelCount = orders.filter(o => canCancelOrder(o)).length;
-  const canReturnCount = orders.filter(o => canReturnOrReplace(o)).length;
+  const filteredOrders = orders;
 
   return (
     <>
@@ -185,44 +173,6 @@ const PlaceOrder = () => {
           {successMessage && (
             <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
               {successMessage}
-            </div>
-          )}
-
-          {/* Tabs/Filters */}
-          {!ordersLoading && orders.length > 0 && (
-            <div className="bg-white p-4 rounded-xl shadow mb-6">
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setActiveTab('all')}
-                  className={`px-4 py-2 rounded-lg font-semibold transition ${
-                    activeTab === 'all'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                  }`}
-                >
-                  All Orders ({orders.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab('can-cancel')}
-                  className={`px-4 py-2 rounded-lg font-semibold transition ${
-                    activeTab === 'can-cancel'
-                      ? 'bg-red-600 text-white'
-                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                  }`}
-                >
-                  Can Cancel ({canCancelCount})
-                </button>
-                <button
-                  onClick={() => setActiveTab('can-return')}
-                  className={`px-4 py-2 rounded-lg font-semibold transition ${
-                    activeTab === 'can-return'
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                  }`}
-                >
-                  Can Return/Replace ({canReturnCount})
-                </button>
-              </div>
             </div>
           )}
 
@@ -252,89 +202,74 @@ const PlaceOrder = () => {
                   </button>
                 </Link>
               </div>
-            ) : filteredOrders.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No orders found in this filter</p>
-              </div>
             ) : (
               <div className="space-y-6">
                 {filteredOrders.map((order, index) => (
-                  <div key={order._id || index} className={`border-2 rounded-lg p-4 ${
+                  <div key={order._id || index} className={`border rounded-lg p-3 ${
                     order.status === 'Cancelled' ? 'bg-red-50 border-red-300' :
                     order.status === 'Delivered' ? 'bg-green-50 border-green-300' :
-                    'bg-gray-50 border-gray-300'
+                    '  border-gray-300'
                   }`}>
                     
-                    {/* Order Header */}
-                    <div className="flex justify-between items-start mb-4 border-b pb-3">
-                      <div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                      <div className="bg-white p-3 rounded-lg">
                         <p className="text-sm text-gray-500 font-bold">Order ID: {order._id?.substring(0, 12)}</p>
                         <p className="text-sm text-gray-500">Order Placed: {new Date(order.createdAt).toLocaleDateString("en-GB")}</p>
                         {order.deliveredAt && (
                           <p className="text-sm text-gray-500">Delivered: {new Date(order.deliveredAt).toLocaleDateString("en-GB")}</p>
                         )}
-                      </div>
-                      <div className="text-right">
-                        <span className={`font-medium px-3 py-1 rounded-full text-white block mb-2 ${
-                          order.status === 'Delivered' ? 'bg-green-600' :
-                          order.status === 'Shipped' ? 'bg-blue-600' :
-                          order.status === 'Processing' ? 'bg-yellow-600' :
-                          order.status === 'Pending' ? 'bg-orange-600' :
-                          order.status === 'Cancelled' ? 'bg-red-600' :
-                          'bg-gray-600'
-                        }`}>
-                          {order.status || 'Placed'}
-                        </span>
-                        {order.paymentStatus && (
-                          <span className={`text-xs font-medium px-2 py-1 rounded block ${
-                            order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' :
-                            order.paymentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
+                        <div className="mt-2">
+                          <span className={`font-medium px-3 py-1 rounded-full text-white inline-block mb-2 ${
+                            order.status === 'Delivered' ? 'bg-green-600' :
+                            order.status === 'Shipped' ? 'bg-blue-600' :
+                            order.status === 'Processing' ? 'bg-yellow-600' :
+                            order.status === 'Pending' ? 'bg-orange-600' :
+                            order.status === 'Cancelled' ? 'bg-red-600' :
+                            'bg-gray-600'
                           }`}>
-                            Payment: {order.paymentStatus}
+                            {order.status || 'Placed'}
                           </span>
+                          {order.paymentStatus && (
+                            <span className={`text-xs font-medium px-2 py-1 rounded block w-fit ${
+                              order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' :
+                              order.paymentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              Payment: {order.paymentStatus}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 bg-white p-2 rounded-lg  ">
+                        {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
+                          order.items.map((item, itemIndex) => (
+                            <div key={itemIndex} className="flex gap-3 bg-gray-50 p-2 rounded-lg">
+                              <div className="shrink-0">
+                                {item.image ? (
+                                  <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded" />
+                                ) : (
+                                  <div className="w-14 h-14 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                                    No Image
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex-1">
+                                <p className="font-semibold text-sm text-gray-800">{item.name || 'Product'}</p>
+                                <p className="text-xs text-gray-500">Size: {item.size || 'N/A'} | Qty: {item.quantity}</p>
+                                <p className="font-medium text-sm text-indigo-600">₹{(item.price * item.quantity).toFixed(2)}</p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-500">No items in order</p>
                         )}
                       </div>
-                    </div>
 
-                    {/* Order Items */}
-                    <div className="space-y-3 mb-4">
-                      {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
-                        order.items.map((item, itemIndex) => (
-                          <div key={itemIndex} className="flex gap-4 bg-white p-3 rounded-lg">
-                            
-                            {/* Product Image */}
-                            <div className="shrink-0">
-                              {item.image ? (
-                                <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded" />
-                              ) : (
-                                <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                                  No Image
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Product Details */}
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-800">{item.name || 'Product'}</p>
-                              <p className="text-sm text-gray-500">Size: {item.size || 'N/A'}</p>
-                              <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
-                              <p className="font-medium text-indigo-600">₹{(item.price * item.quantity).toFixed(2)}</p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500">No items in order</p>
-                      )}
-                    </div>
-
-                    {/* Order Summary */}
-                    <div className="bg-white p-3 rounded-lg border-t mb-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm text-gray-600">Payment Method: {order.paymentMethod || 'N/A'}</p>
-                          <p className="font-semibold text-lg mt-2">Total Amount: ₹{(order.totalAmount || 0).toFixed(2)}</p>
-                        </div>
+                      <div className="bg-white p-3 rounded-lg  ">
+                        <p className="text-sm text-gray-600">Payment Method: {order.paymentMethod || 'N/A'}</p>
+                        <p className="font-semibold text-base mt-1">Total Amount: ₹{(order.totalAmount || 0).toFixed(2)}</p>
                       </div>
                     </div>
 

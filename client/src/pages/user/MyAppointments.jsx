@@ -47,6 +47,36 @@ const MyAppointments = () => {
     return [];
   };
 
+  const parseAppointmentDateTime = (dateStr, timeStr) => {
+    const dateMatch = String(dateStr || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!dateMatch) return null;
+
+    const ampmMatch = String(timeStr || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!ampmMatch) return null;
+
+    let hour = Number(ampmMatch[1]);
+    const minute = Number(ampmMatch[2]);
+    const ampm = ampmMatch[3].toUpperCase();
+
+    if (hour === 12) hour = 0;
+    if (ampm === "PM") hour += 12;
+
+    const dt = new Date(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3]), hour, minute, 0, 0);
+    return Number.isNaN(dt.getTime()) ? null : dt;
+  };
+
+  const canJoinConsultationNow = (appointment) => {
+    if (appointment.mode !== "online") return false;
+    if (!String(appointment.status || "").toLowerCase().includes("booked")) return false;
+    const start = parseAppointmentDateTime(appointment.date, appointment.time);
+    if (!start) return false;
+
+    const now = new Date();
+    const joinStart = new Date(start.getTime() - 5 * 60 * 1000);
+    const joinEnd = new Date(start.getTime() + 30 * 60 * 1000);
+    return now >= joinStart && now <= joinEnd;
+  };
+
   const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
@@ -122,7 +152,7 @@ const MyAppointments = () => {
                       <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 col-span-2">
                         <p className="text-slate-500 text-xs">Status</p>
                         <p className="font-semibold text-slate-800">{appointment.status}</p>
-                        <p className="text-slate-500 text-xs mt-1">Mode: {appointment.mode === "online" ? "Online" : "In-person"}</p>
+                        <p className="text-slate-500 text-xs mt-1">Mode: {appointment.mode === "online" ? "Online" : "Offline"}</p>
                       </div>
 
                       {appointment.comment ? (
@@ -146,13 +176,17 @@ const MyAppointments = () => {
                           ) : null}
                         </div>
 
-                      {appointment.mode === "online" ? (
+                      {appointment.mode === "online" && canJoinConsultationNow(appointment) ? (
                         <button
                           onClick={() => navigate(`/consultation/${appointment._id}`)}
                           className="col-span-2 inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 transition"
                         >
-                          {appointment.status === "Booked" ? "Join Online Consultation" : "View Consultation"}
+                          Join Online Consultation
                         </button>
+                      ) : appointment.mode === "online" ? (
+                        <div className="col-span-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-2">
+                          Join button appears 5 minutes before the appointment time.
+                        </div>
                       ) : null}
                     </div>
                   </article>

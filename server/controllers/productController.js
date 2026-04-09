@@ -47,14 +47,14 @@ const parseArrayField = (value, fallback = []) => {
 
 export const createProduct = async (req, res) => {
     try {
-        const { name, description, price, stock, category, sizes, tags, bestSeller, discount } = req.body;
+        const { name, description, price, stock, category, sizes, tags, bestSeller, discount, isActive } = req.body;
 
-        if (!name || !description || !price || stock === undefined || !category) {
+        if (!name || !description || !price || !category) {
             return res.status(400).json({ success: false, message: 'All fields are required' });
         }
 
         const numPrice = parseFloat(price);
-        const numStock = parseInt(stock, 10);
+        const numStock = stock === undefined || stock === null || stock === '' ? 0 : parseInt(stock, 10);
         const numDiscount = discount ? parseFloat(discount) : 0;
 
         if (isNaN(numPrice) || numPrice <= 0 || isNaN(numStock) || numStock < 0) {
@@ -93,6 +93,7 @@ export const createProduct = async (req, res) => {
             tags: parsedTags,
             bestSeller: bestSeller === 'true' || bestSeller === true,
             discount: numDiscount,
+            isActive: isActive === undefined ? true : isActive === 'true' || isActive === true,
             images,
         });
 
@@ -106,10 +107,7 @@ export const createProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find({});
-        if (products.length === 0) {
-            return res.status(404).json({ success: false, message: 'No products found' });
-        }
+        const products = await Product.find({}).sort({ createdAt: -1 });
         return res.status(200).json({ success: true, products });
     } catch (error) {
         console.error('Get products error:', error);
@@ -136,7 +134,7 @@ export const getProductById = async (req, res) => {
 export const updateProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, price, stock, category, sizes, tags, bestSeller, discount } = req.body;
+        const { name, description, price, stock, category, sizes, tags, bestSeller, discount, isActive } = req.body;
 
         const product = await Product.findById(id);
         if (!product) {
@@ -183,6 +181,7 @@ export const updateProduct = async (req, res) => {
         product.tags = parsedTags;
         if (bestSeller !== undefined) product.bestSeller = bestSeller === 'true' || bestSeller === true;
         if (discount !== undefined) product.discount = parseFloat(discount) || 0;
+        if (isActive !== undefined) product.isActive = isActive === 'true' || isActive === true;
         if (uploadedImages.length > 0) {
             product.images = [...product.images, ...uploadedImages];
         }

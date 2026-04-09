@@ -11,8 +11,9 @@ import {
   FiRefreshCw,
   FiSend,
   FiKey,
+  FiPlayCircle,
 } from "react-icons/fi";
-import { getMyAssignedOrders, generateOtp, verifyOtp } from "../../services/DeliveryService";
+import { getMyAssignedOrders, generateOtp, verifyOtp, markOutForDelivery } from "../../services/DeliveryService";
 
 const statusColors = {
   Pending: "bg-yellow-100 text-yellow-700",
@@ -76,6 +77,16 @@ const DeliveryDashboard = () => {
       toast.error(err.response?.data?.message || "Failed to generate OTP");
     } finally {
       setGeneratingOtp(false);
+    }
+  };
+
+  const handleMarkOutForDelivery = async (order) => {
+    try {
+      await markOutForDelivery(order._id);
+      toast.success("Order marked as Out for Delivery");
+      fetchOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update order status");
     }
   };
 
@@ -213,13 +224,24 @@ const DeliveryDashboard = () => {
                       Delivered
                     </div>
                   ) : (
-                    <button
-                      onClick={() => openOtpModal(order)}
-                      className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
-                    >
-                      <FiKey size={16} />
-                      Confirm Delivery
-                    </button>
+                    <>
+                      {order.status !== "Out for Delivery" && (
+                        <button
+                          onClick={() => handleMarkOutForDelivery(order)}
+                          className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 text-sm font-medium"
+                        >
+                          <FiPlayCircle size={16} />
+                          Mark Out for Delivery
+                        </button>
+                      )}
+                      <button
+                        onClick={() => openOtpModal(order)}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
+                      >
+                        <FiKey size={16} />
+                        Confirm Delivery
+                      </button>
+                    </>
                   )}
                   <div className="flex items-center gap-1 text-xs text-gray-400">
                     <FiClock size={12} />

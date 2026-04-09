@@ -455,9 +455,16 @@ const Notices = () => {
                     key={notice._id}
                     className="border border-gray-200 rounded-lg p-3 bg-gray-50"
                   >
-                    <p className="text-sm font-semibold text-gray-900 line-clamp-1">
-                      {notice.subject}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900 line-clamp-1">
+                        {notice.subject}
+                      </p>
+                      {String(notice.group || "") === "contact-us" ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">
+                          Contact Us
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-gray-500 mt-1">
                       {notice.targetText || "Recipients"} | Sent {notice.sentCount}/
                       {notice.totalRecipients} | Failed {notice.failedCount}

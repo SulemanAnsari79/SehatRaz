@@ -74,7 +74,7 @@ export const getMyAssignedOrders = async (req, res) => {
 
     const orders = await Order.find({ assignedTo: deliveryManId })
       .populate("user", "name email")
-      .sort({ updatedAt: -1 });
+      .sort({ createdAt: 1 });
 
     res.status(200).json({ success: true, orders });
   } catch (error) {
@@ -224,6 +224,30 @@ export const verifyDeliveryOtp = async (req, res) => {
   } catch (error) {
     console.error("Verify OTP error:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const markOrderOutForDelivery = async (req, res) => {
+  try {
+    const deliveryManId = req.deliveryMan._id;
+    const { orderId } = req.params;
+
+    const order = await Order.findOne({ _id: orderId, assignedTo: deliveryManId });
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found or not assigned to you" });
+    }
+
+    if (["Delivered", "Cancelled"].includes(order.status)) {
+      return res.status(400).json({ success: false, message: "Order cannot be updated" });
+    }
+
+    order.status = "Out for Delivery";
+    await order.save();
+
+    return res.status(200).json({ success: true, message: "Order marked as Out for Delivery", order });
+  } catch (error) {
+    console.error("Mark out for delivery error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 

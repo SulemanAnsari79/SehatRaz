@@ -39,6 +39,7 @@ const DoctorProfile = () => {
 
   const [formData, setFormData] = useState({
     specialization: "",
+    licenseNumber: "",
     experience: 0,
     feesPerConsultation: 0,
     timings: "",
@@ -81,6 +82,7 @@ const DoctorProfile = () => {
          setProfile(doctorData);
         setFormData({
           specialization: doctorData.specialization || "",
+          licenseNumber: doctorData.licenseNumber || "",
           experience: doctorData.experience || 0,
           feesPerConsultation: doctorData.feesPerConsultation || 0,
           timings: Array.isArray(doctorData.timings) 
@@ -125,6 +127,7 @@ const DoctorProfile = () => {
       setSaving(true);
       const updatePayload = {
         specialization: formData.specialization,
+        licenseNumber: formData.licenseNumber,
         experience: formData.experience,
         feesPerConsultation: formData.feesPerConsultation,
         timings: formData.timings
@@ -172,6 +175,7 @@ const DoctorProfile = () => {
     setIsEditing(false);
     setFormData({
       specialization: profile?.specialization || "",
+      licenseNumber: profile?.licenseNumber || "",
       experience: profile?.experience || 0,
       feesPerConsultation: profile?.feesPerConsultation || 0,
       timings: Array.isArray(profile?.timings)
@@ -466,6 +470,20 @@ const DoctorProfile = () => {
                       />
                     </div>
 
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        License Number
+                      </label>
+                      <input
+                        type="text"
+                        name="licenseNumber"
+                        value={formData.licenseNumber}
+                        onChange={handleInputChange}
+                        placeholder="e.g., MCI-123456"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
                     {/* Experience */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -560,6 +578,18 @@ const DoctorProfile = () => {
                       </div>
                       <p className="text-gray-700 font-medium text-lg">
                         {profile.experience || 0} <span className="text-sm">years</span>
+                      </p>
+                    </div>
+
+                    <div className="bg-linear-to-br from-cyan-50 to-cyan-100 p-6 rounded-lg border border-cyan-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-cyan-200 rounded-lg">
+                          <FiAward className="text-cyan-700 text-lg" />
+                        </div>
+                        <h4 className="font-semibold text-gray-900">License Number</h4>
+                      </div>
+                      <p className="text-gray-700 font-medium text-lg">
+                        {profile.licenseNumber || "Not specified"}
                       </p>
                     </div>
 

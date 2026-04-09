@@ -158,6 +158,7 @@ const AdminSidebar = () => {
     { name: "Order Requests", path: "/admin/order-requests", badgeKey: "orderRequests" },
     { name: "Notices", path: "/admin/notices", badgeKey: "notices" },
     { name: "Delivery Men", path: "/admin/delivery-men" },
+    { name: "Location Control", path: "/admin/location-control" },
   ];
 
   return (

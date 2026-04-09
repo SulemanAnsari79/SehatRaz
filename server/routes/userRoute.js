@@ -3,7 +3,7 @@ import auth from '../middlewares/auth.js';
 import adminAuth from '../middlewares/adminAuth.js';
 import upload from '../middlewares/uploadImg.js';
 
-import {register,login,logout, getUserProfile, updateUserProfile, getAllUsers, deleteUser, updateUser, createUser, uploadProfileImage, changePassword, deleteAccount, sendForgotPasswordOtp, verifyForgotPasswordOtp, resetPasswordWithOtp} from '../controllers/userController.js';
+import {register,login,logout, getUserProfile, updateUserProfile, getAllUsers, deleteUser, updateUser, createUser, uploadProfileImage, changePassword, deleteAccount, sendForgotPasswordOtp, verifyForgotPasswordOtp, resetPasswordWithOtp, submitContactMessage} from '../controllers/userController.js';
 
 
 const userRouter= express.Router(); 
@@ -13,6 +13,7 @@ userRouter.post('/login',login)
 userRouter.post('/forgot-password/send-otp', sendForgotPasswordOtp);
 userRouter.post('/forgot-password/verify-otp', verifyForgotPasswordOtp);
 userRouter.post('/forgot-password/reset-password', resetPasswordWithOtp);
+userRouter.post('/contact-us', submitContactMessage);
 userRouter.post('/logout',auth, logout);
 userRouter.get('/profile',auth, getUserProfile);
 userRouter.put('/update-profile',auth, updateUserProfile);

@@ -13,6 +13,7 @@ const AdminDashboard = () => {
     totalRevenue: 0,
     totalAppointments: 0,
     pendingAppointments: 0,
+    pendingLeaveRequests: 0,
   });
   const [recentUsers, setRecentUsers] = useState([]);
   const [pendingOrders, setPendingOrders] = useState(0);
@@ -147,6 +148,14 @@ const AdminDashboard = () => {
           trend=""
         />
         <StatCard
+          title="Pending Leave Requests"
+          value={stats.pendingLeaveRequests || 0}
+          icon={<FiUsers />}
+          bgColor="bg-rose-50"
+          iconColor="text-rose-600"
+          trend=""
+        />
+        <StatCard
           title="Total Revenue"
           value={`₹${(stats.totalRevenue || 0).toLocaleString()}`}
           icon={<FiDollarSign />}
@@ -231,6 +240,12 @@ const AdminDashboard = () => {
               className="w-full px-4 py-3 bg-linear-to-r from-purple-500 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition"
             >
               Manage Orders
+            </button>
+            <button
+              onClick={() => navigate("/admin/leave-requests")}
+              className="w-full px-4 py-3 bg-linear-to-r from-rose-500 to-rose-600 text-white rounded-lg font-medium hover:shadow-lg transition"
+            >
+              Manage Leave Requests
             </button>
             <button
               onClick={() => navigate("/admin/products")}

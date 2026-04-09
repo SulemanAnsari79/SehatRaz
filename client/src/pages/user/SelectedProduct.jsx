@@ -4,32 +4,72 @@ import { AuthContext } from '../../context/AuthContext';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { FiStar } from 'react-icons/fi';
+import api from '../../services/Api.js';
 
 const SelectedProduct = () => {
     const { productId } = useParams();
     const { products, addToCart } = useContext(AuthContext);
     const [productData, setProductData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
     const [size, setSize] = useState("");
+    const [activeTab, setActiveTab] = useState("description");
     // const [selectedSize, setSelectedSize] = useState("");
 
     const fetchProductData = async () => {
+      setLoading(true);
+      setLoadError('');
 
-      products.map((item) => {
-        if (item._id === productId) {
-          setProductData(item);
-          return null;
+      const localProduct = products.find((item) => String(item._id) === String(productId));
+      if (localProduct) {
+        setProductData(localProduct);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/product/get/${productId}`);
+        const remoteProduct = response?.data?.product;
+        if (remoteProduct) {
+          setProductData(remoteProduct);
+        } else {
+          setLoadError('Product not found.');
         }
-      });
-    } 
+      } catch (error) {
+        setLoadError(error?.response?.data?.message || 'Failed to load product details.');
+      } finally {
+        setLoading(false);
+      }
+    }
     useEffect(() => {
       fetchProductData();
     }, [productId, products]);
+
+    useEffect(() => {
+      if (!productData) return;
+      const availableSizes = Array.isArray(productData.sizes) ? productData.sizes : [];
+      const mediumSize = availableSizes.find((s) => String(s).toUpperCase() === "M");
+      const defaultSize = mediumSize || availableSizes[0] || "";
+      setSize(defaultSize);
+    }, [productData]);
+
+    if (loading) {
+      return (
+        <>
+          <Navbar />
+          <div className='p-6 bg-gray-50 min-h-screen'>Loading product...</div>
+          <Footer />
+        </>
+      );
+    }
 
     if (!productData) {
       return (
         <>
           <Navbar />
-          <div className='p-6 bg-gray-50 min-h-screen'>Loading product...</div>
+          <div className='p-6 bg-gray-50 min-h-screen text-center'>
+            <p className='text-gray-700 font-semibold'>{loadError || 'Product not available.'}</p>
+          </div>
           <Footer />
         </>
       );
@@ -84,7 +124,7 @@ const SelectedProduct = () => {
                    <span className='text-sm text-gray-500'>No sizes available.</span>
                  )}
                </div>
-               <button onClick={() => size ? addToCart(productData._id, size) : alert('Please select a size')} className='bg-black text-white px-8 py-3 text-sm active:bg-gray-700 w-1/2'>ADD TO CART</button>
+               <button onClick={() => addToCart(productData._id, size)} className='bg-black text-white px-8 py-3 text-sm active:bg-gray-700 w-1/2'>ADD TO CART</button>
                <hr className='mt-8 sm:w-4/5' />
                <div className='text-sm text-gray-500 mt-5 flex flex-col gap-1'>
                  <p>100% Original Product</p>
@@ -97,12 +137,31 @@ const SelectedProduct = () => {
          {/* ---------------Description and review section---------------- */}
          <div className='mt-20'>
            <div className='flex'>
-             <b className='border px-5 py-3 text-sm '>Description</b>
-             <p className='border px-5 py-3 text-sm '>Reviews</p>
+             <button
+               type='button'
+               onClick={() => setActiveTab("description")}
+               className={`border px-5 py-3 text-sm font-semibold ${activeTab === "description" ? "bg-white" : "bg-gray-100 text-gray-500"}`}
+             >
+               Description
+             </button>
+             <button
+               type='button'
+               onClick={() => setActiveTab("reviews")}
+               className={`border px-5 py-3 text-sm font-semibold ${activeTab === "reviews" ? "bg-white" : "bg-gray-100 text-gray-500"}`}
+             >
+               Reviews
+             </button>
            </div>
            <div className='flex flex-col gap-4 border px-6 py-6 text-sm text-gray-500'>
-             <p>{productData?.description}</p>
-             {/* <p>E-commerce website typically display products or services along with detailed description,images ,price and may availabe variations eg(sizes,colors).Each product usually has its own dedicated page with relevent information</p> */}
+             {activeTab === "description" ? (
+               <p>{productData?.description || "No description available for this product."}</p>
+             ) : (
+               <>
+                 <p className='font-medium text-gray-700'>Customer Reviews</p>
+                 <p>This product does not have verified reviews yet.</p>
+                 <p>Be the first customer to purchase and share your feedback.</p>
+               </>
+             )}
            </div>
          </div>
          </div>
