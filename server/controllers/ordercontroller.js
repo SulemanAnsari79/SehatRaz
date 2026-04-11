@@ -130,6 +130,44 @@ const adjustProductStock = async (items, direction) => {
     }
 };
 
+const sanitizeOrderText = (value, max = 500) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
+
+const isOnlinePaidOrder = (order) => String(order?.paymentMethod || '').toLowerCase() === 'razorpay';
+
+const processOnlineOrderRefund = async (order, adminNotes = '') => {
+        if (!order?.razorpayPaymentId) {
+                order.paymentStatus = 'Refund Failed';
+                order.cancelRequest = {
+                        ...(order.cancelRequest || {}),
+                        adminNotes: adminNotes || 'Refund failed: missing Razorpay payment reference',
+                };
+                return { ok: false, message: 'Missing Razorpay payment reference' };
+        }
+
+        try {
+            const razorpay = getRazorpayInstance();
+            const refundResponse = await razorpay.payments.refund(order.razorpayPaymentId, {
+                amount: Math.round(Number(order.totalAmount || 0) * 100),
+                notes: {
+                    orderId: String(order._id),
+                    reason: String(order.cancelRequest?.reason || 'Cancellation approved'),
+                },
+            });
+
+            order.paymentStatus = 'Refunded';
+            order.cancelRequest = {
+                ...(order.cancelRequest || {}),
+                adminNotes: adminNotes || order.cancelRequest?.adminNotes || '',
+                decidedBy: order.cancelRequest?.decidedBy || '',
+            };
+
+            return { ok: true, refundId: String(refundResponse?.id || '') };
+        } catch (error) {
+            order.paymentStatus = 'Refund Failed';
+            return { ok: false, message: error?.error?.description || error?.message || 'Refund failed' };
+        }
+};
+
 const createEmailTransporter = () =>
     process.env.EMAIL_HOST
         ? nodemailer.createTransport({
@@ -454,7 +492,7 @@ export const updateOrderStatus = async (req, res) => {
         }
 
         if (paymentStatus) {
-            if (!['Pending', 'Paid', 'Failed'].includes(paymentStatus)) {
+            if (!['Pending', 'Paid', 'Failed', 'Refund Pending', 'Refunded', 'Refund Rejected', 'Refund Failed'].includes(paymentStatus)) {
                 return res.status(400).json({ success: false, message: 'Invalid payment status' });
             }
             updateData.paymentStatus = paymentStatus;
@@ -572,19 +610,154 @@ export const cancelOrder = async (req, res) => {
         }
 
         if (!['Pending', 'Processing'].includes(order.status)) {
-            return res.status(400).json({ success: false, message: `Cannot cancel order with status: ${order.status}` });
+            return res.status(400).json({ success: false, message: `Cannot request cancellation for order with status: ${order.status}` });
         }
 
-        order.status = 'Cancelled';
-        order.cancelReason = reason || 'User requested cancellation';
+        const cancelRequestStatus = String(order.cancelRequest?.status || 'None');
+        if (cancelRequestStatus === 'Requested') {
+            return res.status(409).json({ success: false, message: 'Cancellation request is already pending' });
+        }
+
+        order.cancelRequest = {
+            ...(order.cancelRequest || {}),
+            status: 'Requested',
+            reason: sanitizeOrderText(reason || 'User requested cancellation', 300),
+            requestDate: new Date(),
+            decisionDate: null,
+            adminNotes: '',
+            decidedBy: '',
+        };
         await order.save();
 
-        await adjustProductStock(order.items, 1);
-
-        return res.status(200).json({ success: true, message: 'Order cancelled successfully', order });
+        return res.status(200).json({
+            success: true,
+            message: 'Cancellation request submitted for admin approval',
+            order,
+        });
     } catch (error) {
         console.error('Cancel order error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const listCancelRequests = async (req, res) => {
+    try {
+        const status = String(req.query.status || 'Requested').trim();
+        const query = {
+            'cancelRequest.status': status === 'all' ? { $ne: 'None' } : status,
+        };
+
+        const orders = await Order.find(query)
+            .populate('user', 'name email')
+            .sort({ updatedAt: -1, createdAt: -1 });
+
+        return res.status(200).json({ success: true, orders, count: orders.length });
+    } catch (error) {
+        console.error('List cancel requests error:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch cancel requests' });
+    }
+};
+
+export const approveCancelRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const adminNotes = sanitizeOrderText(req.body?.adminNotes, 500);
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (String(order.cancelRequest?.status || 'None') !== 'Requested') {
+            return res.status(400).json({ success: false, message: 'No pending cancellation request' });
+        }
+
+        const previousStatus = order.status;
+
+        order.cancelRequest = {
+            ...(order.cancelRequest || {}),
+            status: 'Approved',
+            decisionDate: new Date(),
+            adminNotes,
+            decidedBy: String(req.admin?.id || 'admin'),
+        };
+        order.status = 'Cancelled';
+        order.cancelReason = order.cancelRequest.reason || 'Admin approved cancellation';
+
+        await adjustProductStock(order.items, 1);
+
+        if (isOnlinePaidOrder(order) && String(order.paymentStatus || '') === 'Paid') {
+            order.paymentStatus = 'Refund Pending';
+            await order.save();
+
+            const refundResult = await processOnlineOrderRefund(order, adminNotes);
+            if (!refundResult.ok) {
+                await order.save();
+                return res.status(502).json({
+                    success: false,
+                    message: refundResult.message || 'Failed to process online refund',
+                    order,
+                });
+            }
+        }
+
+        if (!isOnlinePaidOrder(order) && String(order.paymentStatus || '') === 'Paid') {
+            order.codRefund = {
+                ...(order.codRefund || {}),
+                status: 'Requested',
+                amount: Number(order.totalAmount || 0),
+                reason: order.cancelRequest.reason || 'Approved cancellation for COD order',
+                requestedAt: new Date(),
+                adminNotes: adminNotes || '',
+                failureReason: '',
+                payoutMethod: '',
+                payoutReference: '',
+            };
+            order.paymentStatus = 'Refund Pending';
+        }
+
+        await order.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Cancellation approved',
+            order,
+            previousStatus,
+        });
+    } catch (error) {
+        console.error('Approve cancel request error:', error);
+        return res.status(500).json({ success: false, message: 'Failed to approve cancellation request' });
+    }
+};
+
+export const rejectCancelRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const adminNotes = sanitizeOrderText(req.body?.adminNotes, 500);
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (String(order.cancelRequest?.status || 'None') !== 'Requested') {
+            return res.status(400).json({ success: false, message: 'No pending cancellation request' });
+        }
+
+        order.cancelRequest = {
+            ...(order.cancelRequest || {}),
+            status: 'Rejected',
+            decisionDate: new Date(),
+            adminNotes,
+            decidedBy: String(req.admin?.id || 'admin'),
+        };
+
+        await order.save();
+
+        return res.status(200).json({ success: true, message: 'Cancellation rejected', order });
+    } catch (error) {
+        console.error('Reject cancel request error:', error);
+        return res.status(500).json({ success: false, message: 'Failed to reject cancellation request' });
     }
 };
 
@@ -710,6 +883,21 @@ export const approveReturn = async (req, res) => {
             approvalDate: new Date(),
             adminNotes: adminNotes || ''
         };
+
+        const isCodOrder = String(order.paymentMethod || '').toLowerCase() !== 'razorpay';
+        if (isCodOrder && String(order.paymentStatus || '') === 'Paid') {
+            order.codRefund = {
+                ...(order.codRefund || {}),
+                status: 'Requested',
+                amount: Number(order.totalAmount || 0),
+                reason: order.returnRequest?.reason || 'Approved return for COD order',
+                requestedAt: new Date(),
+                adminNotes: adminNotes || '',
+                failureReason: '',
+            };
+            order.paymentStatus = 'Refund Pending';
+        }
+
         order.status = 'Processing';
         await order.save();
 

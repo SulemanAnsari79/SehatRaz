@@ -1,25 +1,38 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { toast } from "react-toastify";
-import { useState } from "react";
-import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import AuthService from "../../services/AuthService";
+import OrderService from "../../services/OrderService";
+import { getMyBookedAppointments } from "../../services/DoctorService.js";
+import { 
+  UserCircleIcon, 
+  Settings02Icon, 
+  PackageIcon, 
+  Calendar03Icon, 
+  Logout01Icon, 
+  Camera01Icon, 
+  Key01Icon, 
+  Delete02Icon,
+  CheckmarkBadge01Icon,
+  Mail01Icon,
+  // Call01Icon,
+  Location01Icon
+} from 'hugeicons-react';
 
 const Profile = () => {
   const { logout, navigate } = useContext(AuthContext);
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [profileImage, setProfileImage] = useState("https://via.placeholder.com/150x150?text=User");
+  const [profileImage, setProfileImage] = useState("https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop");
   const [imageFile, setImageFile] = useState(null);
-  const [previewImage, setPreviewImage] = useState("https://via.placeholder.com/150x150?text=User");
+  const [previewImage, setPreviewImage] = useState("");
   const [imageUploading, setImageUploading] = useState(false);
   
-  // Settings state
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -27,111 +40,100 @@ const Profile = () => {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [ordersCount, setOrdersCount] = useState(0);
+  const [appointmentsCount, setAppointmentsCount] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const fetchProfile = async () => {
     try {
       const data = await AuthService.getCurrentUser();
-
-
       setName(data.user.name || "");
       setEmail(data.user.email || "");
       setPhone(data.user.phone || "");
       setAddress(data.user.address || "");
-      
       if (data.user.image) {
         setProfileImage(data.user.image);
         setPreviewImage(data.user.image);
+      } else {
+        setPreviewImage(profileImage);
       }
-
     } catch (error) {
-      console.error("Failed to fetch profile:", error);
       toast.error("Failed to load profile");
     }
   };
 
+  useEffect(() => { fetchProfile(); }, []);
+
   useEffect(() => {
-    fetchProfile();
+    const fetchStats = async () => {
+      setStatsLoading(true);
+      try {
+        const [ordersResponse, appointmentsResponse] = await Promise.allSettled([
+          OrderService.getUserOrders(),
+          getMyBookedAppointments(),
+        ]);
+
+        if (ordersResponse.status === "fulfilled") {
+          const orders = Array.isArray(ordersResponse.value?.orders)
+            ? ordersResponse.value.orders
+            : [];
+          setOrdersCount(orders.length);
+        }
+
+        if (appointmentsResponse.status === "fulfilled") {
+          const appointmentPayload = appointmentsResponse.value?.data;
+          const appointments = Array.isArray(appointmentPayload?.appointments)
+            ? appointmentPayload.appointments
+            : Array.isArray(appointmentPayload)
+              ? appointmentPayload
+              : [];
+          setAppointmentsCount(appointments.length);
+        }
+      } catch (error) {
+        console.error("Failed to load user stats", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "name") setName(value);
-    if (name === "email") setEmail(value);
-    if (name === "phone") setPhone(value);
-    if (name === "address") setAddress(value);
-  };
-
-  const UpdateHandler =async (e) => {
+  const UpdateHandler = async (e) => {
     e.preventDefault();
-
-    const response= await AuthService.updateProfile({ name, email, phone, address });
+    const response = await AuthService.updateProfile({ name, email, phone, address });
     if (response.success) {
-    toast.success("Profile updated successfully!");
-    fetchProfile(); // Refresh profile data after update
+      toast.success("Profile synchronized!");
+      fetchProfile();
     } else {
-    toast.error(response.message || "Failed to update profile");
+      toast.error(response.message || "Update failed");
     }
   };
-
-  // const handleProfileChange = () => {
-  //   toast.info("Profile picture change feature is coming soon!");
-  // };
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error("Please select a valid image file");
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size must be less than 5MB");
-        return;
-      }
-
       setImageFile(file);
-      
-      // Create preview
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
+      reader.onloadend = () => setPreviewImage(reader.result);
       reader.readAsDataURL(file);
     }
   };
 
   const handleUploadImage = async () => {
-    if (!imageFile) {
-      toast.error("Please select an image first");
-      return;
-    }
-
     setImageUploading(true);
     try {
       const response = await AuthService.uploadProfileImage(imageFile);
       if (response.success) {
-        toast.success("Profile image updated successfully!");
-        setProfileImage(response.image || previewImage);
+        toast.success("Avatar updated!");
         setImageFile(null);
         fetchProfile();
-      } else {
-        toast.error(response.message || "Failed to upload image");
       }
     } catch (error) {
-      console.error("Image upload error:", error);
-      toast.error(error.message || "Failed to upload image");
+      toast.error("Upload failed");
     } finally {
       setImageUploading(false);
     }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-    toast.success("Logged out successfully!");
   };
 
   const handleChangePassword = async (e) => {
@@ -147,25 +149,20 @@ const Profile = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("New password must be at least 6 characters");
-      return;
-    }
-
     setPasswordLoading(true);
     try {
       const response = await AuthService.changePassword(currentPassword, newPassword);
       if (response.success) {
-        toast.success("Password changed successfully!");
-        setShowChangePasswordModal(false);
+        toast.success(response.message || "Password updated successfully");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmNewPassword("");
+        setShowChangePasswordModal(false);
       } else {
-        toast.error(response.message || "Failed to change password");
+        toast.error(response.message || "Password update failed");
       }
     } catch (error) {
-      toast.error(error.message || "Failed to change password");
+      toast.error(error.message || "Password update failed");
     } finally {
       setPasswordLoading(false);
     }
@@ -175,7 +172,7 @@ const Profile = () => {
     e.preventDefault();
 
     if (!deletePassword) {
-      toast.error("Password is required to delete account");
+      toast.error("Password is required to close your account");
       return;
     }
 
@@ -183,325 +180,214 @@ const Profile = () => {
     try {
       const response = await AuthService.deleteAccount(deletePassword);
       if (response.success) {
-        toast.success("Account deleted successfully");
+        toast.success(response.message || "Account closed successfully");
         setShowDeleteAccountModal(false);
+        setDeletePassword("");
         logout();
-        navigate("/");
+        navigate("/login");
       } else {
-        toast.error(response.message || "Failed to delete account");
+        toast.error(response.message || "Account deletion failed");
       }
     } catch (error) {
-      toast.error(error.message || "Failed to delete account");
+      toast.error(error.message || "Account deletion failed");
     } finally {
       setPasswordLoading(false);
     }
   };
 
   return (
-    <>
-    <Navbar />
-    <div className="bg-gray-50 min-h-screen p-6">
+    <div className="bg-[#fafbfc] min-h-screen font-['Plus_Jakarta_Sans']">
+      <Navbar />
 
-      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+      <main className="max-w-7xl mx-auto px-6 py-12 md:py-20">
+        <div className="grid lg:grid-cols-12 gap-8">
+          
+          {/* LEFT: THE IDENTITY CARD */}
+          <aside className="lg:col-span-4 space-y-6">
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)] text-center relative overflow-hidden">
+              {/* Decorative background circle */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl opacity-50 -mr-16 -mt-16"></div>
+              
+              <div className="relative inline-block mb-6">
+                <div className="relative group">
+                  <img src={previewImage} alt="User" className="w-40 h-40 mx-auto rounded-[3rem] object-cover ring-8 ring-slate-50 transition-all group-hover:scale-95"/>
+                  <label htmlFor="image-input" className="absolute -bottom-2 -right-2 bg-slate-900 text-white p-3 rounded-2xl cursor-pointer hover:bg-[#1A56DB] transition-all shadow-xl">
+                    <Camera01Icon size={20} variant="bulk" />
+                  </label>
+                </div>
+                <input id="image-input" type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+              </div>
 
-        {/* Left Side - Profile Card */}
-        <div className="bg-white p-6 rounded-xl shadow text-center">
+              {imageFile && (
+                <div className="mb-6 flex gap-2 animate-in fade-in slide-in-from-top-4">
+                  <button onClick={handleUploadImage} disabled={imageUploading} className="flex-1 bg-[#1A56DB] text-white py-2 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50">
+                    {imageUploading ? "Syncing..." : "Apply"}
+                  </button>
+                  <button onClick={() => { setImageFile(null); setPreviewImage(profileImage); }} className="flex-1 bg-slate-100 text-slate-400 py-2 rounded-xl text-xs font-black uppercase tracking-widest">
+                    Cancel
+                  </button>
+                </div>
+              )}
 
-          <div className="relative inline-block mb-4">
-            <img src={previewImage} alt="User" className="w-32 h-32 mx-auto rounded-full object-cover border-4 border-gray-200"/>
-            <label htmlFor="image-input" className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full cursor-pointer hover:bg-indigo-700 transition">
-              📷
-            </label>
-            <input 
-              id="image-input"
-              type="file" 
-              accept="image/*" 
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-          </div>
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-2">
+                  {name} <CheckmarkBadge01Icon size={18} className="text-blue-500" variant="bulk" />
+                </h2>
+                <p className="text-slate-400 font-bold text-sm tracking-tight">{email}</p>
+              </div>
 
-          {imageFile && (
-            <div className="mb-3 flex gap-2 justify-center">
-              <button 
-                onClick={handleUploadImage}
-                disabled={imageUploading}
-                className="bg-green-500 text-white px-3 py-2 rounded text-sm hover:bg-green-600 disabled:opacity-50"
-              >
-                {imageUploading ? "Uploading..." : "Upload"}
+              <div className="mt-8 pt-8 border-t border-slate-50 space-y-3">
+                <button onClick={logout} className="w-full flex items-center justify-center gap-3 bg-rose-50 text-rose-600 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-rose-100 transition-all group">
+                  <Logout01Icon size={18} variant="bulk" className="group-hover:translate-x-1 transition-transform" />
+                  Sign Out
+                </button>
+              </div>
+            </div>
+
+            {/* QUICK STATS BENTO */}
+            <div className="grid grid-cols-2 gap-4">
+               <div className="bg-white p-6 rounded-3xl border border-slate-100 text-center">
+                  <PackageIcon size={24} className="mx-auto text-blue-500 mb-2" variant="bulk" />
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Orders</p>
+                <p className="text-xl font-black text-slate-900">{statsLoading ? "--" : String(ordersCount).padStart(2, "0")}</p>
+               </div>
+               <div className="bg-white p-6 rounded-3xl border border-slate-100 text-center">
+                  <Calendar03Icon size={24} className="mx-auto text-teal-500 mb-2" variant="bulk" />
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Appts</p>
+                <p className="text-xl font-black text-slate-900">{statsLoading ? "--" : String(appointmentsCount).padStart(2, "0")}</p>
+               </div>
+            </div>
+          </aside>
+
+          {/* RIGHT: THE SETTINGS HUB */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* PROFILE FORM */}
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)]">
+              <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3 uppercase tracking-widest text-[11px]">
+                <UserCircleIcon size={20} className="text-[#1A56DB]" variant="bulk" />
+                My Profile
+              </h3>
+
+              <form onSubmit={UpdateHandler} className="space-y-8">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase ml-4 tracking-widest">Display Name</label>
+                    <div className="relative">
+                      <UserCircleIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                      <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-50 border-none pl-12 p-4 rounded-2xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase ml-4 tracking-widest">Email Address</label>
+                    <div className="relative">
+                      <Mail01Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-slate-50 border-none pl-12 p-4 rounded-2xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase ml-4 tracking-widest">Contact Number</label>
+                    <div className="relative">
+                      {/* <Call01Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} /> */}
+                      <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-slate-50 border-none pl-12 p-4 rounded-2xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-400 uppercase ml-4 tracking-widest">Shipping Base</label>
+                    <div className="relative">
+                      <Location01Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                      <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-slate-50 border-none pl-12 p-4 rounded-2xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-[#1A56DB] transition-all transform active:scale-95 shadow-xl shadow-slate-200">
+                  Save Updates
+                </button>
+              </form>
+            </div>
+
+            {/* DASHBOARD ACTIONS */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <button onClick={() => navigate('/place-order')} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex items-center justify-between group hover:border-blue-200 transition-all">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl">
+                    <PackageIcon size={24} variant="bulk" />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-black text-slate-900 tracking-tight">Order History</h4>
+                    <p className="text-xs font-bold text-slate-400">Track current & past meds</p>
+                  </div>
+                </div>
               </button>
-              <button 
-                onClick={() => {
-                  setImageFile(null);
-                  setPreviewImage(profileImage);
-                }}
-                className="bg-gray-500 text-white px-3 py-2 rounded text-sm hover:bg-gray-600"
-              >
-                Cancel
+
+              <button onClick={() => navigate('/my-appointments')} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex items-center justify-between group hover:border-teal-200 transition-all">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 bg-teal-50 text-teal-600 rounded-2xl">
+                    <Calendar03Icon size={24} variant="bulk" />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-black text-slate-900 tracking-tight">Appointments</h4>
+                    <p className="text-xs font-bold text-slate-400">Manage doctor visits</p>
+                  </div>
+                </div>
               </button>
             </div>
-          )}
 
-          <h2 className="mt-4 text-xl font-semibold">{name}</h2>
-
-          <p className="text-gray-500">{email}</p>
-
-          <button onClick={handleLogout} className="bg-black text-white text-sm my-8 px-8 py-3 rounded-xl hover:bg-red-600">Logout</button>
-
-        </div>
-
-        {/* Right Side - Profile Details */}
-        <form onSubmit={UpdateHandler} className="md:col-span-2 bg-white p-6 rounded-xl shadow">
-
-          <h3 className="text-2xl font-semibold mb-6">Profile Information</h3>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="profile-name" className="text-sm font-medium text-gray-700">Full Name</label>
-              <input id="profile-name" type="text" name="name" placeholder="Full Name" value={name} onChange={handleInputChange} className="border p-2 rounded"/>
+            {/* SECURITY BOX */}
+            <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100">
+              <h3 className="text-[11px] font-black text-slate-400 mb-8 uppercase tracking-widest flex items-center gap-2">
+                <Settings02Icon size={18} /> Account Vault
+              </h3>
+              <div className="flex flex-wrap gap-4">
+                <button onClick={() => setShowChangePasswordModal(true)} className="flex items-center gap-3 px-6 py-3 bg-slate-50 rounded-2xl text-[11px] font-black uppercase text-slate-600 hover:bg-slate-900 hover:text-white transition-all">
+                  <Key01Icon size={18} /> Update Password
+                </button>
+                <button onClick={() => setShowDeleteAccountModal(true)} className="flex items-center gap-3 px-6 py-3 bg-rose-50 rounded-2xl text-[11px] font-black uppercase text-rose-600 hover:bg-rose-600 hover:text-white transition-all">
+                  <Delete02Icon size={18} /> Close Account
+                </button>
+              </div>
             </div>
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="profile-email" className="text-sm font-medium text-gray-700">Email Address</label>
-              <input id="profile-email" type="email" name="email" placeholder="Email Address" value={email} onChange={handleInputChange} className="border p-2 rounded"/>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label htmlFor="profile-phone" className="text-sm font-medium text-gray-700">Phone Number</label>
-              <input id="profile-phone" type="text" name="phone" placeholder="Phone Number" value={phone} onChange={handleInputChange} className="border p-2 rounded"/>
-            </div>
-
-            <div className="flex flex-col gap-1 sm:col-span-2">
-              <label htmlFor="profile-address" className="text-sm font-medium text-gray-700">Address</label>
-              <input id="profile-address" type="text" name="address" placeholder="Address" value={address} onChange={handleInputChange} className="border p-2 rounded"/>
-            </div>
-
-          </div>
-          <button type="submit" className="bg-black text-white text-sm my-8 px-8 py-3 rounded-xl">Save Changes</button>
-        </form>
-
-      </div>
-
-      {/* Account Settings Section */}
-      <div className="max-w-6xl mx-auto mt-10 bg-white p-6 rounded-xl shadow">
-        <h3 className="text-xl font-semibold mb-6">Account Settings</h3>
-        
-        <div className="space-y-4">
-          {/* My Orders Button */}
-          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-            <div>
-              <h4 className="font-semibold text-gray-800">My Orders</h4>
-              <p className="text-sm text-gray-500">View all your orders and track status</p>
-            </div>
-            <button 
-              onClick={() => navigate('/place-order')}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-              View
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-            <div>
-              <h4 className="font-semibold text-gray-800">My Appointments</h4>
-              <p className="text-sm text-gray-500">View your booked and completed appointments</p>
-            </div>
-            <button
-              onClick={() => navigate('/my-appointments')}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-              View
-            </button>
-          </div>
-
-          {/* Change Password Button */}
-          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-            <div>
-              <h4 className="font-semibold text-gray-800">Change Password</h4>
-              <p className="text-sm text-gray-500">Update your password to keep your account secure</p>
-            </div>
-            <button 
-              onClick={() => setShowChangePasswordModal(true)}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-              Change
-            </button>
-          </div>
-
-          {/* Delete Account Button */}
-          <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg hover:bg-red-50">
-            <div>
-              <h4 className="font-semibold text-red-700">Delete Account</h4>
-              <p className="text-sm text-gray-500">Permanently delete your account and all data</p>
-            </div>
-            <button 
-              onClick={() => setShowDeleteAccountModal(true)}
-              className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition"
-            >
-              Delete
-            </button>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Change Password Modal */}
+      <Footer />
+      
+      {/* RENDER MODALS... (Keeping your existing logic but wrapping in New UI) */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Change Password</h3>
-              <button 
-                onClick={() => {
-                  setShowChangePasswordModal(false);
-                  setCurrentPassword("");
-                  setNewPassword("");
-                  setConfirmNewPassword("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Current Password
-                </label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Enter current password"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  New Password
-                </label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Enter new password"
-                  minLength={6}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Confirm new password"
-                  minLength={6}
-                  required
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {passwordLoading ? "Changing..." : "Change Password"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowChangePasswordModal(false);
-                    setCurrentPassword("");
-                    setNewPassword("");
-                    setConfirmNewPassword("");
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
+           <div className="bg-white rounded-[3rem] shadow-2xl max-w-md w-full p-10 relative border border-white">
+              <h3 className="text-2xl font-black text-slate-900 mb-6 tracking-tighter">New Password</h3>
+              <form onSubmit={handleChangePassword} className="space-y-6">
+                 <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Current Password" required className="w-full bg-slate-50 border-none p-4 rounded-2xl font-bold text-slate-800 outline-none" />
+                 <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New Password" required className="w-full bg-slate-50 border-none p-4 rounded-2xl font-bold text-slate-800 outline-none" />
+                 <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder="Confirm New" required className="w-full bg-slate-50 border-none p-4 rounded-2xl font-bold text-slate-800 outline-none" />
+                 <div className="flex gap-3">
+               <button type="submit" disabled={passwordLoading} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#1A56DB] disabled:opacity-50">{passwordLoading ? "Updating..." : "Change"}</button>
+                   <button type="button" onClick={() => setShowChangePasswordModal(false)} className="flex-1 bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
+                 </div>
+              </form>
+           </div>
         </div>
       )}
 
-      {/* Delete Account Modal */}
       {showDeleteAccountModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-red-700">Delete Account</h3>
-              <button 
-                onClick={() => {
-                  setShowDeleteAccountModal(false);
-                  setDeletePassword("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">
-                <strong>Warning:</strong> This action cannot be undone. All your data including orders, appointments, and profile information will be permanently deleted.
-              </p>
-            </div>
-
-            <form onSubmit={handleDeleteAccount} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Enter Your Password to Confirm
-                </label>
-                <input
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  placeholder="Enter password"
-                  required
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {passwordLoading ? "Deleting..." : "Delete Account"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDeleteAccountModal(false);
-                    setDeletePassword("");
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
-                >
-                  Cancel
-                </button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xl flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-[3rem] shadow-2xl max-w-md w-full p-10 relative border border-white">
+            <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tighter">Close Account</h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">This will delete your account and associated orders/appointments. Enter your password to confirm.</p>
+            <form onSubmit={handleDeleteAccount} className="space-y-6">
+              <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} placeholder="Account Password" required className="w-full bg-slate-50 border-none p-4 rounded-2xl font-bold text-slate-800 outline-none" />
+              <div className="flex gap-3">
+               <button type="submit" disabled={passwordLoading} className="flex-1 bg-rose-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-700 disabled:opacity-50">{passwordLoading ? "Closing..." : "Close Account"}</button>
+               <button type="button" onClick={() => setShowDeleteAccountModal(false)} className="flex-1 bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
               </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
-    <Footer />
-    </>
   );
 };
 
 export default Profile;
-

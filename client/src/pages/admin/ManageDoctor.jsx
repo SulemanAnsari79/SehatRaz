@@ -100,7 +100,7 @@ const ManageDoctor = () => {
         [...rows].sort((a, b) => {
           const createdA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
           const createdB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return createdA - createdB;
+          return createdB - createdA;
         })
       );
     } catch (err) {

@@ -6,6 +6,8 @@ import AuthService from "../services/AuthService";
 import { AuthContext } from "../context/AuthContext";
 import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 
+const LOGIN_BG_IMAGE = "/images/login-impact.jpg";
+
 
 export default function Login() {
   const [role, setRole] = useState("user"); // 'user' | 'doctor' | 'admin'
@@ -272,12 +274,21 @@ export default function Login() {
   const selectedRole = roles.find(r => r.value === role);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full bg-white shadow-md rounded-lg overflow-hidden grid grid-cols-1 md:grid-cols-2">
-        <div className="flex items-center justify-center bg-linear-to-br from-indigo-600 to-purple-600 p-6 md:p-8 order-1">
+    <div
+      className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950"
+      style={{
+        backgroundImage: `linear-gradient(rgba(2, 6, 23, 0.68), rgba(2, 6, 23, 0.82)), url('${LOGIN_BG_IMAGE}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+      }}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(56,189,248,0.2),transparent_35%),radial-gradient(circle_at_80%_90%,rgba(34,197,94,0.15),transparent_40%)]" />
+      <div className="relative max-w-5xl w-full bg-white/96 shadow-[0_20px_80px_rgba(2,6,23,0.45)] rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 border border-white/30 backdrop-blur-sm">
+        <div className="flex items-center justify-center bg-linear-to-br from-cyan-700 via-blue-700 to-emerald-700 p-6 md:p-8 order-1">
           <div className="text-white text-center px-4 md:px-6">
             <h2 className="text-2xl md:text-3xl font-extrabold">Welcome to SehatRazz</h2>
-            <p className="mt-3 md:mt-4 text-sm md:text-base text-indigo-100">Fast, secure access for Patients, Doctors and Admins.</p>
+            <p className="mt-3 md:mt-4 text-sm md:text-base text-cyan-100">Fast, secure access for Patients, Doctors and Admins.</p>
             <img src="/logo192.png" alt="logo" className="mx-auto mt-4 md:mt-6 w-24 md:w-32 h-24 md:h-32 opacity-80" />
           </div>
         </div>

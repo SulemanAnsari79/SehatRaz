@@ -1,73 +1,60 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Mail, Phone, MapPin, Instagram, Facebook, Twitter } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-green-700 text-gray-300 px-6 py-10">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-
-        {/* Column 1 - Logo */}
-        <div>
-          <img 
-            src="https://via.placeholder.com/150x50?text=Sehatraz" 
-            alt="Sehatraz Logo" 
-            className="w-40 mb-3"
-          />
-          <p className="text-sm">
-            Your trusted healthcare & wellness partner.
+    <footer className="bg-gray-900 text-gray-400 pt-16 pb-8 px-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-gray-800 pb-12">
+        {/* Brand */}
+        <div className="col-span-1 md:col-span-1">
+          <span className="text-2xl font-bold text-white">Sehat<span className="text-[#1A56DB]">raz</span></span>
+          <p className="mt-4 text-sm leading-relaxed">
+            India’s growing digital healthcare ecosystem. Bringing quality healthcare products and expert advice to every doorstep.
           </p>
+          <div className="flex space-x-4 mt-6">
+            <Instagram size={20} className="hover:text-white cursor-pointer" />
+            <Facebook size={20} className="hover:text-white cursor-pointer" />
+            <Twitter size={20} className="hover:text-white cursor-pointer" />
+          </div>
         </div>
 
-        {/* Column 2 - Description */}
+        {/* Links */}
         <div>
-          <h3 className="text-white text-lg font-semibold mb-3">
-            About Sehatraz
-          </h3>
-          <p className="text-sm leading-relaxed">
-            Sehatraz is an integrated e-commerce and e-healthcare platform 
-            that helps users purchase healthcare products and consult doctors online.
-          </p>
-        </div>
-
-        {/* Column 3 - Quick Links */}
-        <div>
-          <h3 className="text-white text-lg font-semibold mb-3">
-            Quick Links
-          </h3>
-          <ul className="space-y-2">
-            <li>
-              <Link to="/" className="hover:text-green-400">Home</Link>
-            </li>
-            <li>
-              <Link to="/products" className="hover:text-green-400">Products</Link>
-            </li>
-            <li>
-              <Link to="/about" className="hover:text-green-400">About</Link>
-            </li>
-            <li>
-              <Link to="/contact" className="hover:text-green-400">Contact</Link>
-            </li>
+          <h3 className="text-white font-bold mb-6 text-sm uppercase tracking-widest">Platform</h3>
+          <ul className="space-y-4 text-sm">
+            <li><Link to="/products" className="hover:text-white">Medicines</Link></li>
+            <li><Link to="/doctors" className="hover:text-white">Online Consultation</Link></li>
+            <li><Link to="/contact" className="hover:text-white">Wellness Products</Link></li>
+            <li><Link to="/about" className="hover:text-white">About Us</Link></li>
           </ul>
         </div>
 
-        {/* Column 4 - Contact Info */}
+        {/* Service Areas */}
         <div>
-          <h3 className="text-white text-lg font-semibold mb-3">
-            Contact Us
-          </h3>
-          <p className="text-sm">📧 sehatraz@gmail.com</p>
-          <p className="text-sm mt-2">📞 +91 98765 43210</p>
+          <h3 className="text-white font-bold mb-6 text-sm uppercase tracking-widest">Delivering To</h3>
+          <ul className="space-y-4 text-sm">
+            <li className="flex items-center"><MapPin size={14} className="mr-2" /> Delhi (110025)</li>
+            <li className="flex items-center"><MapPin size={14} className="mr-2" /> Uttar Pradesh (Shahjahanpur)</li>
+            <li className="text-[10px] text-gray-500 mt-2 italic">*More locations coming soon</li>
+          </ul>
         </div>
 
+        {/* Contact */}
+        <div>
+          <h3 className="text-white font-bold mb-6 text-sm uppercase tracking-widest">Get in Touch</h3>
+          <div className="space-y-4 text-sm">
+            <p className="flex items-center"><Mail size={14} className="mr-2" /> sehatraz@gmail.com</p>
+            <p className="flex items-center"><Phone size={14} className="mr-2" /> +91 98765 43210</p>
+          </div>
+        </div>
       </div>
-
-      {/* Bottom Bar */}
-      <div className="text-center text-sm mt-8 border-t border-gray-700 pt-4">
-        © {new Date().getFullYear()} Sehatraz. All Rights Reserved.
-      </div>
+      
+      <p className="text-center mt-8 text-[12px]">
+        © 2026 Sehatraz Healthcare. Secure Payments Powered by SSL.
+      </p>
     </footer>
   );
 };
 
 export default Footer;
-

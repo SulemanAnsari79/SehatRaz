@@ -5,7 +5,7 @@ const orderSchema = new mongoose.Schema({
   items:{type:Array,required:true},
   totalAmount:{type:Number,required:true},
   status:{type:String, default:"Pending"},
-  paymentStatus:{type:String, default:"Pending"},
+  paymentStatus:{type:String, enum:["Pending","Paid","Failed","Refund Pending","Refunded","Refund Rejected","Refund Failed"], default:"Pending"},
   paymentMethod:{type:String, required:true},
   notes:{type:String, default:""},
   razorpayOrderId: { type: String, default: '' },
@@ -14,6 +14,14 @@ const orderSchema = new mongoose.Schema({
   paidAt: { type: Date },
   deliveredAt: { type: Date },
   cancelReason: { type: String, default: '' },
+  cancelRequest: {
+    status: { type: String, enum: ['None', 'Requested', 'Approved', 'Rejected'], default: 'None' },
+    reason: { type: String, default: '' },
+    requestDate: { type: Date, default: null },
+    decisionDate: { type: Date, default: null },
+    adminNotes: { type: String, default: '' },
+    decidedBy: { type: String, default: '' }
+  },
   returnRequest: {
     status: { type: String, enum: ['None', 'Requested', 'Approved', 'Rejected', 'Completed'], default: 'None' },
     reason: { type: String, default: '' },
@@ -27,6 +35,19 @@ const orderSchema = new mongoose.Schema({
     requestDate: { type: Date },
     approvalDate: { type: Date },
     adminNotes: { type: String, default: '' }
+  },
+  codRefund: {
+    status: { type: String, enum: ["None", "Requested", "Approved", "Rejected", "Refunded", "Failed"], default: "None" },
+    amount: { type: Number, default: 0 },
+    reason: { type: String, default: "" },
+    requestedAt: { type: Date, default: null },
+    decisionAt: { type: Date, default: null },
+    refundedAt: { type: Date, default: null },
+    adminNotes: { type: String, default: "" },
+    decidedBy: { type: String, default: "" },
+    payoutMethod: { type: String, enum: ["", "UPI", "Bank", "Cash", "Wallet"], default: "" },
+    payoutReference: { type: String, default: "" },
+    failureReason: { type: String, default: "" }
   },
   returnDeadlineDate: { type: Date },
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryMan", default: null },

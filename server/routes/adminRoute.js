@@ -1,7 +1,7 @@
 import express from 'express';
 import adminAuth from '../middlewares/adminAuth.js';
 import upload from '../middlewares/uploadImg.js';
-import {adminDashboard, adminLogin, adminLogout, createUser, deleteAppointment, deleteDoctor, deleteOrder, deleteProduct, getAdminStats, getAllAppointments, getAllDoctors, getAllProducts, getAppointmentById, getDoctorById, getOrderById, getProductById, getUserById, rejectDoctor, updateAppointment, updateOrderStatus, updateProduct, verifyDoctor, createDoctor,
+import {adminDashboard, adminLogin, adminLogout, createUser, deleteAppointment, deleteDoctor, deleteOrder, deleteProduct, getAdminStats, getAllAppointments, getAllDoctors, getAllProducts, getAppointmentById, getDoctorById, getOrderById, getProductById, getUserById, rejectDoctor, updateAppointment, updateOrderStatus, updateProduct, verifyDoctor, createDoctor, updateDoctor,
   createDeliveryMan, getAllDeliveryMen, deleteDeliveryMan, toggleDeliveryManStatus, assignOrderToDelivery, sendNoticeEmails, getRecentNotices
 , getLeaveRequests, approveLeaveRequest, rejectLeaveRequest
 , getDeliveryLocationRules, updateDeliveryLocationRules
@@ -30,6 +30,7 @@ adminRouter.post('/leave-requests/:id/approve', adminAuth, approveLeaveRequest);
 adminRouter.post('/leave-requests/:id/reject', adminAuth, rejectLeaveRequest);
 adminRouter.get('/doctor/:id',adminAuth, getDoctorById);
 adminRouter.post('/doctors',adminAuth, createDoctor);
+adminRouter.put('/doctors/:id',adminAuth, updateDoctor);
 adminRouter.post('/verify-doctor/:id',adminAuth, verifyDoctor);
 adminRouter.post('/reject-doctor/:id',adminAuth, rejectDoctor);
 adminRouter.delete('/delete-doctor/:id',adminAuth, deleteDoctor);

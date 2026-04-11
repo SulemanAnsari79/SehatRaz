@@ -31,6 +31,7 @@ const AdminSidebar = () => {
     leaveRequests: 0,
     orders: 0,
     orderRequests: 0,
+    refunds: 0,
     notices: 0,
   });
   const [seenCounts, setSeenCounts] = useState(getInitialSeenCounts);
@@ -118,8 +119,19 @@ const AdminSidebar = () => {
       const orderRequestsCount = orders.reduce((acc, order) => {
         const isReturnRequested = String(order?.returnRequest?.status || "") === "Requested";
         const isReplaceRequested = String(order?.replaceRequest?.status || "") === "Requested";
-        return acc + (isReturnRequested ? 1 : 0) + (isReplaceRequested ? 1 : 0);
+        const isCancelRequested = String(order?.cancelRequest?.status || "") === "Requested";
+        return acc + (isReturnRequested ? 1 : 0) + (isReplaceRequested ? 1 : 0) + (isCancelRequested ? 1 : 0);
       }, 0);
+
+      const appointmentRefundCount = appointments.filter(
+        (item) =>
+          String(item?.status || "") === "Cancelled" &&
+          String(item?.refundControl?.status || "") === "PendingApproval"
+      ).length;
+
+      const codRefundCount = orders.filter(
+        (item) => String(item?.codRefund?.status || "") === "Requested"
+      ).length;
 
       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const recentNoticesCount = notices.filter((item) => {
@@ -134,6 +146,7 @@ const AdminSidebar = () => {
         leaveRequests: leaveRequestsPendingCount,
         orders: ordersActiveCount,
         orderRequests: orderRequestsCount,
+        refunds: appointmentRefundCount + codRefundCount,
         notices: recentNoticesCount,
       });
     } catch {
@@ -156,6 +169,7 @@ const AdminSidebar = () => {
     { name: "Products", path: "/admin/products" },
     { name: "Orders", path: "/admin/orders", badgeKey: "orders" },
     { name: "Order Requests", path: "/admin/order-requests", badgeKey: "orderRequests" },
+    { name: "Refund Control", path: "/admin/refunds", badgeKey: "refunds" },
     { name: "Notices", path: "/admin/notices", badgeKey: "notices" },
     { name: "Delivery Men", path: "/admin/delivery-men" },
     { name: "Location Control", path: "/admin/location-control" },

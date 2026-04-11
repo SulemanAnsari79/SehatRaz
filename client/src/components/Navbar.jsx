@@ -1,98 +1,79 @@
-import React, { useState ,useContext} from 'react';
+// components/Navbar.jsx
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { ShoppingCart, User, Menu, X, Bot } from 'lucide-react';
+import { 
+  ShoppingBasket01Icon, 
+  UserCircleIcon, 
+  Menu01Icon, 
+  Cancel01Icon, 
+  AiChat02Icon, 
+  StethoscopeIcon 
+} from 'hugeicons-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const {getCartCount} = useContext(AuthContext);
+  const [scrolled, setScrolled] = useState(false);
+  const { getCartCount } = useContext(AuthContext);
 
-
-  const toggleMenu = () => setIsOpen(!isOpen);
-
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Products', path: '/products' },
-    { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' } 
-  ];
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo - Left */}
-          <div className="shrink-0">
-            <Link to="/" className="flex items-center">
-              <div className="text-2xl font-bold text-indigo-600">SehatRazz</div>
-            </Link>
+    /* Change 'fixed' to 'sticky' and ensure it's at the very top */
+    <header className="sticky top-0 w-full z-50 font-['Plus_Jakarta_Sans'] transition-all duration-500">
+      
+      {/* 1. THE MINI TICKER */}
+      <div className={`max-w-7xl mx-auto mb-2 transition-all duration-500 ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-6 mt-2'}`}>
+        <div className="bg-slate-900 rounded-full py-1 px-4 border border-slate-800">
+          <div className="flex justify-center items-center text-[10px] font-black text-white uppercase tracking-[0.2em]">
+             Licensed Pharmacy Delhi • Express Delivery UP
           </div>
+        </div>
+      </div>
 
-          {/* Nav Links - Center (hidden on mobile) */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <Link key={link.name} to={link.path} className="text-gray-700 hover:text-indigo-600 font-medium transition duration-200">
-                {link.name}
+      {/* 2. THE FLOATING ISLAND */}
+      <nav className={`max-w-7xl mx-auto transition-all duration-500 ease-in-out px-4
+        ${scrolled 
+          ? 'bg-white/80 backdrop-blur-xl border-slate-200 shadow-lg rounded-4xl py-3' 
+          : 'bg-white border-slate-100 shadow-sm rounded-4xl py-5'
+        } border`}>
+        
+        <div className="flex justify-between items-center px-4">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="p-2 bg-slate-900 rounded-xl">
+              <StethoscopeIcon size={20} color="#fff" variant="bulk" />
+            </div>
+            <span className="text-xl font-black text-slate-900 tracking-tighter">
+              Sehat<span className="text-[#1A56DB]">raz</span>
+            </span>
+          </Link>
+
+          <div className="hidden lg:flex items-center gap-8">
+            {['Products', 'Doctors', 'Contact', 'About'].map((item) => (
+              <Link key={item} to={`/${item.toLowerCase()}`} className="text-[13px] font-black text-slate-600 hover:text-[#1A56DB]">
+                {item}
               </Link>
             ))}
           </div>
 
-          {/* Icons - Right */}
-          <div className="flex items-center space-x-4">
-            <Link
-              to="/bookappointment"
-              title="Quick AI Consultation"
-              className="relative text-cyan-600 hover:text-cyan-700 transition duration-200"
-            >
-              <Bot size={24} />
+          <div className="flex items-center gap-3">
+            <Link to="/cart" className="relative p-2 text-slate-700">
+                <ShoppingBasket01Icon size={22} variant="bulk" />
+                <span className="absolute top-0 right-0 bg-[#E11D48] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
+                    {getCartCount()}
+                </span>
             </Link>
-
-            {/* Cart Icon */}
-            <Link
-              to="/cart"
-              className="relative text-gray-700 hover:text-indigo-600 transition duration-200"
-            >
-              <ShoppingCart size={24} />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{getCartCount()}</span>
+            <Link to="/profile" className="p-2 text-slate-700">
+                <UserCircleIcon size={22} variant="bulk" />
             </Link>
-
-            {/* Profile Icon */}
-            <Link
-              to="/profile"
-              className="text-gray-700 hover:text-indigo-600 transition duration-200"
-            >
-              <User size={24} />
-            </Link>
-
-            {/* Mobile Menu Toggle */}
-            <button
-              onClick={toggleMenu}
-              className="md:hidden text-gray-700 hover:text-indigo-600 transition duration-200"
-            >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isOpen && (
-          <div className="md:hidden bg-gray-50 border-t border-gray-200">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  className="block px-3 py-2 rounded-md text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 font-medium transition duration-200"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };
 

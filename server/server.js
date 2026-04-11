@@ -24,6 +24,7 @@ import appointmentRouter from './routes/appointmentRoute.js';
 import recommendationRouter from './routes/recommendationRoute.js';
 import deliveryRouter from './routes/deliveryRoute.js';
 import consultationRouter from './routes/consultationRoute.js';
+import refundRouter from './routes/refundRoute.js';
 import { startAppointmentReminderJob } from './utils/appointmentNotifications.js';
 import { initConsultationSocket } from './socket/consultationSocket.js';
 
@@ -50,11 +51,12 @@ const getAllowedOrigins = () => {
     if (process.env.NODE_ENV !== 'production') {
         configuredOrigins.push(
             'http://localhost:5173',
-            'http://localhost:4173',
-            'http://localhost:3000',
+            'http://localhost:5174',
+            // 'http://localhost:4173',
+            // 'http://localhost:3000',
             'http://localhost:10000',
-            'http://127.0.0.1:5173',
-            'http://127.0.0.1:3000'
+            // 'http://127.0.0.1:5173',
+            // 'http://127.0.0.1:3000'
         );
     }
 
@@ -108,6 +110,7 @@ app.use('/api/appointment',appointmentRouter);
 app.use('/api/consultation',consultationRouter);
 app.use('/api/recommendation',recommendationRouter);
 app.use('/api/delivery',deliveryRouter);
+app.use('/api/refund',refundRouter);
 
 if (hasClientBuild) {
     app.get(/^\/(?!api\/).*/, (req, res) => {

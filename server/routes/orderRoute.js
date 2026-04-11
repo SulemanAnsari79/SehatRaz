@@ -7,6 +7,9 @@ import {
   getMyOrders,
   cancelOrder,
   getAllOrders,
+  listCancelRequests,
+  approveCancelRequest,
+  rejectCancelRequest,
   requestReturn,
   requestReplace,
   approveReturn,
@@ -32,6 +35,9 @@ orderRouter.post('/:id/replace',auth, requestReplace);
  
 orderRouter.get('/orders',adminAuth, getAllOrders);
 orderRouter.put('/orders/:id',adminAuth, updateOrderStatus);
+orderRouter.get('/cancel-requests', adminAuth, listCancelRequests);
+orderRouter.put('/cancel-requests/:id/approve', adminAuth, approveCancelRequest);
+orderRouter.put('/cancel-requests/:id/reject', adminAuth, rejectCancelRequest);
 orderRouter.put('/:id/return/approve',adminAuth, approveReturn);
 orderRouter.put('/:id/return/reject',adminAuth, rejectReturn);
 orderRouter.put('/:id/replace/approve',adminAuth, approveReplace);

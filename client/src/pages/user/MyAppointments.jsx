@@ -13,15 +13,11 @@ const MyAppointments = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const canCancelAppointment = (appointmentDate) => {
-      const appointment = new Date(appointmentDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-    
-      const timeDifference = appointment.getTime() - today.getTime();
-      const daysDifference = timeDifference / (1000 * 60 * 60 * 24);
-    
-      return daysDifference >= 1;
+    const canCancelAppointment = (appointment) => {
+      const slot = parseAppointmentDateTime(appointment?.date, appointment?.time);
+      if (!slot) return false;
+      const hoursDifference = (slot.getTime() - Date.now()) / (1000 * 60 * 60);
+      return hoursDifference >= 2;
     };
 
     const handleCancelAppointment = async (appointmentId) => {
@@ -29,10 +25,12 @@ const MyAppointments = () => {
         return;
       }
 
+      const reason = window.prompt("Please provide a cancellation reason (optional)", "") || "";
+
       try {
-        await api.delete(`/appointment/cancel/${appointmentId}`);
+        await api.delete(`/appointment/cancel/${appointmentId}`, { data: { reason } });
         setAppointments(appointments.filter((apt) => apt._id !== appointmentId));
-        toast.success("Appointment cancelled successfully");
+        toast.success("Appointment cancelled. Refund policy will be applied by admin control.");
       } catch (err) {
         toast.error(err?.response?.data?.message || "Failed to cancel appointment");
       }
@@ -162,16 +160,16 @@ const MyAppointments = () => {
                         </div>
                       ) : null}
                         <div className="col-span-2 flex gap-2">
-                          {appointment.status === "Booked" && canCancelAppointment(appointment.date) ? (
+                          {appointment.status === "Booked" && canCancelAppointment(appointment) ? (
                             <button
                               onClick={() => handleCancelAppointment(appointment._id)}
                               className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition"
                             >
                               <FiTrash2 size={16} /> Cancel Appointment
                             </button>
-                          ) : appointment.status === "Booked" && !canCancelAppointment(appointment.date) ? (
+                          ) : appointment.status === "Booked" && !canCancelAppointment(appointment) ? (
                             <div className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-500">
-                              <FiAlertCircle size={16} /> Cannot Cancel (Within 1 Day)
+                              <FiAlertCircle size={16} /> Cannot Cancel (Within 2 Hours)
                             </div>
                           ) : null}
                         </div>

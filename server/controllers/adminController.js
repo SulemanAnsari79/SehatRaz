@@ -574,6 +574,41 @@ const deleteDoctor = async (req,res)=>{
   res.json({message:"Doctor deleted"});
 };
 
+const updateDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, specialization, experience, qualifications, verified } = req.body;
+
+    const doctor = await Doctor.findById(id);
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: 'Doctor not found' });
+    }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = String(name).trim();
+    if (email !== undefined) updateData.email = String(email).trim();
+    if (phone !== undefined) updateData.phone = String(phone).trim();
+    if (specialization !== undefined) updateData.specialization = String(specialization).trim();
+    if (experience !== undefined && experience > 0) updateData.experience = Number(experience);
+    if (qualifications !== undefined) updateData.qualifications = String(qualifications).trim();
+    if (verified !== undefined) updateData.verified = Boolean(verified);
+
+    const updatedDoctor = await Doctor.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
+    }).select('-password');
+
+    return res.status(200).json({
+      success: true,
+      message: 'Doctor updated successfully',
+      doctor: updatedDoctor
+    });
+  } catch (error) {
+    console.error('Update doctor error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // const createProduct = async (req,res)=>{
 //   const product = await Product.create(req.body);
 //   res.status(201).json(product);
@@ -1038,6 +1073,7 @@ export { adminDashboard,
   verifyDoctor,
   rejectDoctor,
   deleteDoctor,
+  updateDoctor,
   createDoctor,
   createProduct,
   getAllProducts,

@@ -35,6 +35,7 @@ import ManageDeliveryMen from "./pages/admin/ManageDeliveryMen.jsx";
 import LocationControl from "./pages/admin/LocationControl.jsx";
 import ManageAppointments from "./pages/admin/ManageAppointments.jsx";
 import Notices from "./pages/admin/Notices.jsx";
+import ManageRefunds from "./pages/admin/ManageRefunds.jsx";
 import DoctorLayout from "./layouts/DoctorLayout.jsx";
 
 import DoctorDashboard from "./pages/doctor/DoctorDashboard.jsx";
@@ -90,6 +91,7 @@ function App() {
             <Route path="leave-requests" element={<LeaveRequests />} />
             <Route path="orders" element={<ManageOrders />} />
             <Route path="order-requests" element={<ManageOrderRequests />} />
+            <Route path="refunds" element={<ManageRefunds />} />
             <Route path="products" element={<ManageProducts />} />
             <Route path="delivery-men" element={<ManageDeliveryMen />} />
             <Route path="location-control" element={<LocationControl />} />
@@ -107,7 +109,7 @@ function App() {
             <Route path="patients" element={<Patients />} /> 
             <Route path="profile" element={<DoctorProfile />} />  
             <Route path="consultation/:appointmentId" element={<OnlineConsultation />} />
-            </ Route >
+            </Route>
           </Route>
 
           {/* DELIVERY MAN */}

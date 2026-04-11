@@ -90,6 +90,112 @@ const parseAppointmentDateTime = (dateStr, timeStr) => {
     return Number.isNaN(dt.getTime()) ? null : dt;
 };
 
+const sanitizeAdminText = (value, max = 500) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
+
+const getAppointmentRefundPolicy = (appointment) => {
+    const amount = Number(appointment?.amount || 0);
+    if (amount <= 0) {
+        return {
+            eligible: false,
+            status: 'None',
+            policyTier: 'none',
+            policyPercent: 0,
+            policyReason: 'No paid amount available for refund',
+            refundAmount: 0,
+        };
+    }
+
+    if (String(appointment?.paymentStatus || '') !== 'Paid') {
+        return {
+            eligible: false,
+            status: 'None',
+            policyTier: 'none',
+            policyPercent: 0,
+            policyReason: 'Refund is only available for paid appointments',
+            refundAmount: 0,
+        };
+    }
+
+    const slotStart = parseAppointmentDateTime(appointment?.date, appointment?.time);
+    if (!slotStart) {
+        return {
+            eligible: false,
+            status: 'None',
+            policyTier: 'none',
+            policyPercent: 0,
+            policyReason: 'Unable to calculate appointment start time for refund policy',
+            refundAmount: 0,
+        };
+    }
+
+    const hoursBeforeStart = (slotStart.getTime() - Date.now()) / (1000 * 60 * 60);
+    if (hoursBeforeStart < 2) {
+        return {
+            eligible: false,
+            status: 'Rejected',
+            policyTier: 'none',
+            policyPercent: 0,
+            policyReason: 'Cancellations within 2 hours are not refundable',
+            refundAmount: 0,
+        };
+    }
+
+    if (hoursBeforeStart < 24) {
+        const refundAmount = Math.round(amount * 0.5 * 100) / 100;
+        return {
+            eligible: true,
+            status: 'PendingApproval',
+            policyTier: 'partial',
+            policyPercent: 50,
+            policyReason: 'Cancelled between 2 and 24 hours before appointment',
+            refundAmount,
+        };
+    }
+
+    return {
+        eligible: true,
+        status: 'PendingApproval',
+        policyTier: 'full',
+        policyPercent: 100,
+        policyReason: 'Cancelled 24 or more hours before appointment',
+        refundAmount: Math.round(amount * 100) / 100,
+    };
+};
+
+const applyCancellationAndRefundPolicy = (appointment, { actor, reason }) => {
+    appointment.status = 'Cancelled';
+    appointment.cancelledBy = actor;
+    appointment.cancelledAt = new Date();
+    appointment.cancelReason = sanitizeAdminText(reason || `${actor} requested cancellation`, 300);
+
+    const policy = getAppointmentRefundPolicy(appointment);
+    appointment.refundControl = {
+        ...(appointment.refundControl || {}),
+        eligible: policy.eligible,
+        policyTier: policy.policyTier,
+        policyPercent: policy.policyPercent,
+        policyReason: policy.policyReason,
+        status: policy.status,
+        requestedAt: policy.status === 'PendingApproval' ? new Date() : null,
+        amount: policy.refundAmount,
+        adminNotes: policy.policyReason,
+        decidedBy: '',
+        decisionAt: policy.status === 'Rejected' ? new Date() : null,
+        refundedAt: null,
+        gateway: '',
+        gatewayRefundId: '',
+        failureReason: '',
+    };
+
+    if (policy.status === 'PendingApproval') {
+        appointment.paymentStatus = 'Refund Pending';
+    }
+
+    if (policy.status === 'Rejected') {
+        appointment.paymentStatus = 'Refund Rejected';
+    }
+};
+
 const attachOnlineSessionIfNeeded = async (appointment) => {
     if (appointment.mode !== 'online') return;
 
@@ -245,6 +351,7 @@ export const cancelAppointment = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user?.id;
+        const reason = sanitizeAdminText(req.body?.reason, 300);
 
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
@@ -264,10 +371,18 @@ export const cancelAppointment = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Appointment already cancelled' });
         }
 
-        appointment.status = 'Cancelled';
+        applyCancellationAndRefundPolicy(appointment, {
+            actor: 'user',
+            reason,
+        });
         await appointment.save();
 
-        res.status(200).json({ success: true, message: 'Appointment cancelled', appointment });
+        res.status(200).json({
+            success: true,
+            message: 'Appointment cancelled. Refund policy has been evaluated.',
+            appointment,
+            refund: appointment.refundControl,
+        });
     } catch (error) {
         console.error('Cancel appointment error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
@@ -648,6 +763,7 @@ export const createAppointmentAsAdmin = async (req, res) => {
 export const cancelAppointmentAsAdmin = async (req, res) => {
     try {
         const { id } = req.params;
+        const reason = sanitizeAdminText(req.body?.reason, 300);
 
         const appointment = await Appointment.findById(id)
             .populate('user', 'name email')
@@ -661,7 +777,10 @@ export const cancelAppointmentAsAdmin = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Appointment already cancelled' });
         }
 
-        appointment.status = 'Cancelled';
+        applyCancellationAndRefundPolicy(appointment, {
+            actor: 'admin',
+            reason,
+        });
         await appointment.save();
 
         await sendAppointmentCancelledByAdminEmail({
@@ -672,8 +791,9 @@ export const cancelAppointmentAsAdmin = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Appointment cancelled by admin',
+            message: 'Appointment cancelled by admin. Refund policy has been evaluated.',
             appointment,
+            refund: appointment.refundControl,
         });
     } catch (error) {
         console.error('Cancel appointment by admin error:', error);
