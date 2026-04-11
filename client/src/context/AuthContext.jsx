@@ -165,13 +165,11 @@ const AuthProvider = ({ children }) => {
       const response = await axios.get(`${normalizedBackendUrl}/api/product/list`);
       if (response.data.success) {
         setProducts(response.data.products);
-      } else {
-        toast.error(response.data.message)
       }
-
     } catch (error) {
-      console.error('Failed to fetch products:', error);
-      toast.error(error.message || 'Failed to load products')
+      // Only log, don't show error toast for product list - not critical
+      console.debug('Product list fetch error (non-critical):', error.message);
+      // Silently continue without products - they'll load when user navigates to products page
     }
   }, [backendUrl]);
   
@@ -207,8 +205,16 @@ const AuthProvider = ({ children }) => {
         setCartItems(transformedCart);
       }
     } catch (error) {
+      // Silently handle 401 errors - auth interceptor will handle redirect
+      if (error.response?.status === 401) {
+        console.debug('Cart fetch skipped: token expired or invalid');
+        return;
+      }
       console.error('Failed to fetch cart:', error);
-      toast.error(error.message || 'Failed to load cart')
+      // Only show error toast for non-auth errors
+      if (error.message !== 'Network Error') {
+        toast.error(error.response?.data?.message || 'Failed to load cart')
+      }
     }
   }, [backendUrl]);
 

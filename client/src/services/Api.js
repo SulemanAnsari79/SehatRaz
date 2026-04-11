@@ -52,16 +52,18 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
+    const hadToken = !!localStorage.getItem("token");
 
-    console.error("Response Error:", status, error.response?.data);
-
-    if (status === 401 && localStorage.getItem("token")) {
+    if (status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
 
-      if (window.location.pathname !== "/login") {
+      // Silently redirect if there was a stale token
+      if (hadToken && window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
+    } else if (status) {
+      console.error("API Error:", status, error.response?.data?.message);
     }
 
     return Promise.reject(error);

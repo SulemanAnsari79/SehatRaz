@@ -44,7 +44,7 @@ const About = () => {
         {/* 1. PREMIUM HERO SECTION */}
         <section className="relative py-24 px-6 overflow-hidden">
           <div className="absolute inset-0 z-0">
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-gradient-to-b from-blue-50/50 to-transparent"></div>
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-linear-to-b from-blue-50/50 to-transparent"></div>
           </div>
           
           <div className="max-w-7xl mx-auto text-center relative z-10">
@@ -54,7 +54,7 @@ const About = () => {
             </div>
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter mb-6 leading-tight">
               India’s Most Trusted <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1A56DB] to-[#0D9488] italic font-serif">Healthcare Ecosystem.</span>
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-[#1A56DB] to-[#0D9488] italic font-serif">Healthcare Ecosystem.</span>
             </h1>
             <p className="max-w-2xl mx-auto text-lg text-slate-500 font-medium leading-relaxed">
               Sehatraz is redefining how you access wellness, merging cutting-edge pharmacy logistics with expert medical consultations.
@@ -67,11 +67,11 @@ const About = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <div className="absolute -top-6 -left-6 w-32 h-32 bg-teal-100 rounded-full blur-3xl opacity-50"></div>
-              <div className="relative z-10 p-4 bg-white rounded-[3rem] shadow-2xl border border-slate-50 rotate-[-2deg]">
+              <div className="relative z-10 p-4 bg-white rounded-[3rem] shadow-2xl border border-slate-50 -rotate-2">
                 <img
                   src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=800"
                   alt="Our Team"
-                  className="rounded-[2.5rem] w-full h-[500px] object-cover"
+                  className="rounded-[2.5rem] w-full h-125 object-cover"
                 />
               </div>
             </div>
@@ -124,7 +124,7 @@ const About = () => {
           <h2 className="text-center text-4xl font-black text-slate-900 mb-16 tracking-tighter">The Sehatraz Advantage</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {['Genuine Products', 'Expert Consultation', 'Secure Payments', 'Fast Delivery'].map((feature, i) => (
-              <div key={i} className="bg-white p-8 rounded-[2rem] border border-slate-100 flex items-center gap-4 hover:shadow-xl hover:-translate-y-1 transition-all">
+              <div key={i} className="bg-white p-8 rounded-4xl border border-slate-100 flex items-center gap-4 hover:shadow-xl hover:-translate-y-1 transition-all">
                 <div className="p-3 bg-blue-50 text-[#1A56DB] rounded-2xl">
                    <CheckmarkBadge01Icon size={24} variant="bulk" />
                 </div>
@@ -143,15 +143,14 @@ const About = () => {
                   Currently <span className="text-[#1A56DB]">Deliver</span> In:
                 </h2>
                 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 ">
                   {[
                     { title: "Countries", list: locations.countries, icon: <GlobalIcon />, color: "bg-indigo-600" },
                     { title: "States", list: locations.states, icon: <Location01Icon />, color: "bg-blue-600" },
                     { title: "Cities", list: locations.cities, icon: <City01Icon />, color: "bg-cyan-600" },
-                    { title: "Pincodes", list: locations.pincodes, icon: <Mail01Icon />, color: "bg-purple-600" }
                   ].map((loc, i) => (
                     loc.list && loc.list.length > 0 && (
-                      <div key={i} className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-50 flex flex-col items-center">
+                      <div key={i} className="bg-white p-8 rounded-4xl shadow-sm border border-slate-50 flex flex-col items-center">
                         <div className={`w-12 h-12 ${loc.color} text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg`}>
                           {React.cloneElement(loc.icon, { size: 24, variant: "bulk" })}
                         </div>
