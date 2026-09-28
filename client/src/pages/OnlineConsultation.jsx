@@ -3,13 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FiMic, FiMicOff, FiVideo, FiVideoOff, FiPhoneOff, FiSend, FiLoader } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext.jsx";
-import {
-  createConsultationSocket,
-  endConsultationSession,
-  getConsultationSession,
-  saveConsultationPrescription,
-  startConsultationSession,
-} from "../services/ConsultationService.js";
+import { createConsultationSocket, endConsultationSession, getConsultationSession, saveConsultationPrescription, startConsultationSession} from "../services/ConsultationService.js";
 
 const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 

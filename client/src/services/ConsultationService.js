@@ -2,9 +2,7 @@ import { io } from "socket.io-client";
 import api from "./Api.js";
 
 const getSocketBaseUrl = () => {
-  const raw =
-    import.meta.env.VITE_BACKEND_URL ||
-    (import.meta.env.DEV ? "http://localhost:4000" : "");
+  const raw = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? "http://localhost:4000" : "");
   return raw.replace(/\/+$/, "").replace(/\/api$/, "");
 };
 

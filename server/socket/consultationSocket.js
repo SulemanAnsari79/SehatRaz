@@ -41,10 +41,7 @@ const authorizeAppointmentAccess = async ({ appointmentId, userId, role }) => {
     await appointment.save();
   }
 
-  return {
-    ok: true,
-    appointment,
-    session,
+  return {ok: true, appointment, session,
     participant: {
       id: String(userId),
       role,

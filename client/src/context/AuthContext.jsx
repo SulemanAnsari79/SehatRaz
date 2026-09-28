@@ -32,9 +32,7 @@ const AuthProvider = ({ children }) => {
 
   const currency = 'INR';
   const delivery_fee = 50;
-  const backendUrl =
-    import.meta.env.VITE_BACKEND_URL ||
-    (import.meta.env.DEV ? 'http://localhost:4000' : '');
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://localhost:4000' : '');
   const normalizedBackendUrl = backendUrl.replace(/\/+$/, '');
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
@@ -52,12 +50,7 @@ const AuthProvider = ({ children }) => {
 
   const login = (userData) => {
     // Ensure user has all necessary fields
-    const userWithRole = {
-      _id: userData._id || userData.id,
-      name: userData.name,
-      email: userData.email,
-      role: userData.role || "user"
-    };
+    const userWithRole = { _id: userData._id || userData.id, name: userData.name, email: userData.email, role: userData.role || "user" };
     setUser(userWithRole);
     setToken(userData.token);
     localStorage.setItem("user", JSON.stringify(userWithRole));
@@ -66,7 +59,6 @@ const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    
     console.log("Logging out user");
     setUser(null);
     setToken('');
@@ -80,23 +72,14 @@ const AuthProvider = ({ children }) => {
     if (!chosenSize) {
       const product = products.find((item) => String(item._id) === String(itemId));
       const availableSizes = Array.isArray(product?.sizes) ? product.sizes : [];
-      chosenSize =
-        availableSizes.find((item) => String(item).toUpperCase() === "M") ||
-        availableSizes[0] ||
-        "";
+      chosenSize = availableSizes.find((item) => String(item).toUpperCase() === "M") || availableSizes[0] || "";
     }
 
     // Ensure itemId is a string for consistent key matching
     const productId = String(itemId);
 
     // frontend optimistic update
-    setCartItems(prev => ({
-      ...prev,
-      [productId]: {
-        ...(prev[productId] || {}),
-        [chosenSize]: (prev[productId]?.[chosenSize] || 0) + 1
-      }
-    }));
+    setCartItems(prev => ({ ...prev, [productId]: { ...(prev[productId] || {}), [chosenSize]: (prev[productId]?.[chosenSize] || 0) + 1 } }));
 
     if (token) {
       try {
@@ -143,7 +126,6 @@ const AuthProvider = ({ children }) => {
     }
     return totalAmount;
   }
-
 
   const updateQuantity = async (itemId, size, quantity) => {
     // Ensure itemId is a string for consistent key matching
@@ -264,9 +246,5 @@ const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-
-  
-
 
 export default AuthProvider;

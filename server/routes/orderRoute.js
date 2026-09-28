@@ -1,24 +1,7 @@
 import express from 'express';
-import {
-  createOrder,
-  createOnlineOrder,
-  verifyOnlinePayment,
-  updateOrderStatus,
-  getMyOrders,
-  cancelOrder,
-  getAllOrders,
-  listCancelRequests,
-  approveCancelRequest,
-  rejectCancelRequest,
-  requestReturn,
-  requestReplace,
-  approveReturn,
-  rejectReturn,
-  approveReplace,
-  rejectReplace
-} from '../controllers/ordercontroller.js';
 import { adminAuth } from '../middlewares/adminAuth.js';
 import auth from '../middlewares/auth.js';
+import { createOrder, createOnlineOrder, verifyOnlinePayment, updateOrderStatus, getMyOrders, cancelOrder, getAllOrders, listCancelRequests, approveCancelRequest, rejectCancelRequest, requestReturn, requestReplace, approveReturn, rejectReturn, approveReplace, rejectReplace } from '../controllers/ordercontroller.js';
  
 const orderRouter=express.Router()
 
@@ -32,7 +15,7 @@ orderRouter.post('/:id/return',auth, requestReturn);
 orderRouter.post('/:id/replace',auth, requestReplace);
 
 //Admin features
- 
+
 orderRouter.get('/orders',adminAuth, getAllOrders);
 orderRouter.put('/orders/:id',adminAuth, updateOrderStatus);
 orderRouter.get('/cancel-requests', adminAuth, listCancelRequests);

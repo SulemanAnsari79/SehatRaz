@@ -4,10 +4,7 @@ import User from '../models/userModel.js';
 import OnlineSession from '../models/onlineSessionModel.js';
 import crypto from 'crypto';
 import { getRazorpayInstance, getRazorpayKeyId } from '../config/razorpay.js';
-import {
-    sendAppointmentBookedEmail,
-    sendAppointmentCancelledByAdminEmail,
-} from '../utils/appointmentNotifications.js';
+import {sendAppointmentBookedEmail,sendAppointmentCancelledByAdminEmail} from '../utils/appointmentNotifications.js';
 
 const normalizeDateWindow = (rawDate) => {
     const selectedDate = new Date(rawDate);

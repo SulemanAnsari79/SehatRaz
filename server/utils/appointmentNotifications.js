@@ -3,16 +3,16 @@ import Appointment from "../models/appointmentModel.js";
 
 const createEmailTransporter = () =>
   process.env.EMAIL_HOST
-    ? nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: Number(process.env.EMAIL_PORT) || 587,
-        secure: process.env.EMAIL_SECURE === "true",
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      })
-    : nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      });
+  ? nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: Number(process.env.EMAIL_PORT) || 587,
+      secure: process.env.EMAIL_SECURE === "true",
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    })
+  : nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+});
 
 const formatDate = (dateInput) => {
   const parsed = new Date(dateInput);
@@ -72,12 +72,9 @@ const sendMail = async ({ to, subject, html }) => {
 };
 
 const makeTemplate = ({ title, intro, rows, footer }) => {
-  const rowsHtml = rows
-    .map(
-      (row) =>
+  const rowsHtml = rows.map((row) =>
         `<tr><td style="padding:8px 0;color:#374151;"><strong>${row.label}:</strong> ${row.value}</td></tr>`
-    )
-    .join("");
+    ).join("");
 
   return `
     <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#f9fafb;border-radius:8px;overflow:hidden;">
@@ -108,11 +105,7 @@ export const sendAppointmentBookedEmail = async ({ user, doctor, appointment }) 
     footer: "This is an automated appointment update from SehatRazz Admin.",
   });
 
-  await sendMail({
-    to: user.email,
-    subject: "SehatRazz: Appointment Booked",
-    html,
-  });
+  await sendMail({to: user.email, subject: "SehatRazz: Appointment Booked", html});
 };
 
 export const sendAppointmentRescheduledEmail = async ({ user, doctor, fromDate, fromTime, toDate, toTime }) => {

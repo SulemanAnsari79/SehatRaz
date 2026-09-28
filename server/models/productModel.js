@@ -11,6 +11,7 @@ const productSchema = new mongoose.Schema({
   bestSeller:{type:Boolean, default:false},
   discount:{type:Number, default:0},
   images:{type:Array, default:[]},
+  
   isActive:{type:Boolean, default:true},
   date:{type:Number, default: Date.now()},
 },{timestamps:true});

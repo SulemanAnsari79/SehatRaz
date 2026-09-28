@@ -64,9 +64,7 @@ const AuthService = {
    * @returns {Promise} - Response containing user data and token
    */
   login: async (email, password, role) => {
-    try {
-      console.log('Attempting login with:', { email, role });
-      
+    try {  
       const response = await api.post(`/api/${role}/login`, { email, password});
 
       // Store token in localStorage
@@ -134,12 +132,7 @@ const AuthService = {
       const formData = new FormData();
       formData.append('image', imageFile);
       
-      const response = await api.post('/api/user/upload-profile-image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await api.post('/api/user/upload-profile-image', formData, {headers: {'Content-Type': 'multipart/form-data',Authorization: `Bearer ${localStorage.getItem('token')}`}});
       return response.data;
     }
     catch (error) {
@@ -179,13 +172,7 @@ const AuthService = {
    */
   deleteAccount: async (password) => {
     try {
-      const response = await api.delete('/api/user/delete-account', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        data: { password }
-      });
-      
+      const response = await api.delete('/api/user/delete-account', {headers: { Authorization: `Bearer ${localStorage.getItem('token')}`},data: { password }});
       // Clear local storage after successful deletion
       localStorage.removeItem('token');
       localStorage.removeItem('user');

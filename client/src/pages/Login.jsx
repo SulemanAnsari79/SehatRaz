@@ -108,15 +108,7 @@ export default function Login() {
   const handleRegister = async () => {
     try {
       if (role === "doctor") {
-        const response = await AuthService.doctorRegister(
-          form.name,
-          form.email,
-          form.password,
-          form.phone,
-          form.specialization,
-          form.experience,
-          form.qualifications
-        );
+        const response = await AuthService.doctorRegister(form.name, form.email, form.password, form.phone, form.specialization, form.experience, form.qualifications );
         if (response.success || response.message) {
           toast.success(response.message || "Registered successfully! Please wait for admin verification.");
           setForm({ name: "", email: "", password: "", phone: "", specialization: "", experience: "", qualifications: "" });
@@ -170,15 +162,10 @@ export default function Login() {
         } else if (role === "delivery" && response.user) {
           userData = { ...response.user, role: "delivery" };
         }
-        
-        contextLogin({
-        ...userData,
-        token: response.token
-      });
+        contextLogin({...userData,token: response.token});
 
         if (userData) {
           toast.success("Logged in successfully!");
-
           // Redirect based on role
           if (role === "user") {
             navigate("/");
@@ -321,8 +308,7 @@ export default function Login() {
                         setDropdownOpen(false);
                         setErrors({}); // Clear errors when role changes
                       }}
-                      className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-indigo-50 transition duration-150 ${role === r.value ? 'bg-indigo-100 text-indigo-600 font-medium' : 'text-gray-700'
-                        }`}
+                      className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-indigo-50 transition duration-150 ${role === r.value ? 'bg-indigo-100 text-indigo-600 font-medium' : 'text-gray-700'}`}
                     >
                       <span className="text-lg">{r.icon}</span>
                       <span>{r.label}</span>
@@ -384,8 +370,7 @@ export default function Login() {
                   value={form.password}
                   onChange={onChange}
                   required
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="••••••••"
                 />
                 {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
@@ -461,10 +446,7 @@ export default function Login() {
                   type="text"
                   name="otp"
                   value={otp}
-                  onChange={(e) => {
-                    setOtp(e.target.value);
-                    if (errors.otp) setErrors({ ...errors, otp: "" });
-                  }}
+                  onChange={(e) => { setOtp(e.target.value); if (errors.otp) setErrors({ ...errors, otp: "" }); }}
                   required
                   className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.otp ? 'border-red-500' : 'border-gray-300'}`}
                   placeholder="Enter 6-digit OTP"
@@ -481,10 +463,7 @@ export default function Login() {
                     type="password"
                     name="resetPassword"
                     value={resetPassword}
-                    onChange={(e) => {
-                      setResetPassword(e.target.value);
-                      if (errors.resetPassword) setErrors({ ...errors, resetPassword: "" });
-                    }}
+                    onChange={(e) => { setResetPassword(e.target.value); if (errors.resetPassword) setErrors({ ...errors, resetPassword: "" }); }}
                     required
                     className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.resetPassword ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="Enter new password"
@@ -499,10 +478,7 @@ export default function Login() {
                     type="password"
                     name="confirmResetPassword"
                     value={confirmResetPassword}
-                    onChange={(e) => {
-                      setConfirmResetPassword(e.target.value);
-                      if (errors.confirmResetPassword) setErrors({ ...errors, confirmResetPassword: "" });
-                    }}
+                    onChange={(e) => { setConfirmResetPassword(e.target.value); if (errors.confirmResetPassword) setErrors({ ...errors, confirmResetPassword: "" }); }}
                     required
                     className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.confirmResetPassword ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="Confirm new password"
@@ -517,15 +493,7 @@ export default function Login() {
                 {mode === "login" && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setRole("user");
-                      setMode("forgot");
-                      setForgotStep("sendOtp");
-                      setOtp("");
-                      setResetPassword("");
-                      setConfirmResetPassword("");
-                      setErrors({});
-                    }}
+                    onClick={() => { setRole("user"); setMode("forgot"); setForgotStep("sendOtp"); setOtp(""); setResetPassword(""); setConfirmResetPassword(""); setErrors({}); }}
                     className="font-medium text-indigo-600 hover:underline"
                   >
                     Forgot password?
@@ -533,22 +501,8 @@ export default function Login() {
                 )}
               </div>
               <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading
-                    ? "Please wait..."
-                    : mode === "login"
-                    ? "Sign in"
-                    : mode === "signup"
-                    ? "Create account"
-                    : forgotStep === "sendOtp"
-                    ? "Send OTP"
-                    : forgotStep === "verifyOtp"
-                    ? "Verify OTP"
-                    : "Reset Password"}
+                <button type="submit" disabled={loading} className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed" >
+                  {loading ? "Please wait..." : mode === "login" ? "Sign in" : mode === "signup" ? "Create account" : forgotStep === "sendOtp" ? "Send OTP" : forgotStep === "verifyOtp" ? "Verify OTP" : "Reset Password"}
                 </button>
               </div>
             </div>
@@ -560,15 +514,7 @@ export default function Login() {
                 Don't have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => {
-                    setMode("signup");
-                    setForgotStep("sendOtp");
-                    setOtp("");
-                    setResetPassword("");
-                    setConfirmResetPassword("");
-                    setErrors({});
-                    setForm({ name: "", email: "", password: "", phone: "", specialization: "", experience: "", qualifications: "" });
-                  }}
+                  onClick={() => { setMode("signup"); setForgotStep("sendOtp"); setOtp(""); setResetPassword(""); setConfirmResetPassword(""); setErrors({}); setForm({ name: "", email: "", password: "", phone: "", specialization: "", experience: "", qualifications: "" }); }}
                   className="text-indigo-600 font-medium hover:underline"
                 >
                   Sign up
@@ -581,15 +527,7 @@ export default function Login() {
                 Already have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => {
-                    setMode("login");
-                    setForgotStep("sendOtp");
-                    setOtp("");
-                    setResetPassword("");
-                    setConfirmResetPassword("");
-                    setErrors({});
-                    setForm({ name: "", email: "", password: "" });
-                  }}
+                  onClick={() => { setMode("login"); setForgotStep("sendOtp"); setOtp(""); setResetPassword(""); setConfirmResetPassword(""); setErrors({}); setForm({ name: "", email: "", password: "" }); }}
                   className="text-indigo-600 font-medium hover:underline"
                 >
                   Sign in

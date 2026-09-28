@@ -14,6 +14,7 @@ doctorRouter.put('/change-password', doctorAuth, changeDoctorPassword);
 doctorRouter.delete('/delete-account', doctorAuth, deleteDoctorAccount);
 doctorRouter.post('/leave-request', doctorAuth, createLeaveRequest);
 doctorRouter.get('/leave-requests', doctorAuth, getMyLeaveRequests);
+
 doctorRouter.get('/list', getVerifiedDoctors);
 
 export default doctorRouter;

@@ -4,12 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Footer from "../../components/Footer";
 import Navbar from "../../components/Navbar";
-import {
-  createAppointmentPaymentOrder,
-  getDoctorAvailability,
-  getVerifiedDoctors,
-  verifyAppointmentPayment,
-} from "../../services/DoctorService.js";
+import {createAppointmentPaymentOrder, getDoctorAvailability,getVerifiedDoctors,verifyAppointmentPayment} from "../../services/DoctorService.js";
 
 const DEFAULT_SLOTS = ["09:00 AM", "09:20 AM", "09:40 AM", "10:00 AM", "10:20 AM", "10:40 AM", "11:00 AM", "11:20 AM", "11:40 AM", "12:00 PM", "12:20 PM", "12:40 PM", "02:00 PM", "02:20 PM", "02:40 PM", "03:00 PM", "03:20 PM", "03:40 PM", "04:00 PM", "04:20 PM"];
 

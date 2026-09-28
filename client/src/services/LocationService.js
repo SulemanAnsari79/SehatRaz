@@ -6,15 +6,6 @@ export const getDeliveryLocations = async () => {
     return response.data;
   } catch (error) {
     console.error('Failed to fetch delivery locations:', error);
-    return {
-      success: false,
-      locations: {
-        isEnabled: false,
-        cities: [],
-        states: [],
-        countries: [],
-        pincodes: [],
-      }
-    };
+    return { success: false, locations: { isEnabled: false, cities: [], states: [], countries: [], pincodes: [], }};
   }
 };

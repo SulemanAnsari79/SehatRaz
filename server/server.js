@@ -1,4 +1,4 @@
-import express from 'express';
+import express from 'express'; //common express.js syntax
 import 'dotenv/config';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -7,8 +7,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import cors from 'cors';
-import connectDB from './config/db.js';
-import connectCloudinry from './config/cloudinary.js';
+import connectDB from './config/db.js';         //common express.js syntax
+import connectCloudinry from './config/cloudinary.js';  //common express.js syntax
 
 import helmet from "helmet";
 // import limiter from './middlewares/rateLimiter.js';
@@ -30,9 +30,10 @@ import { initConsultationSocket } from './socket/consultationSocket.js';
 
 
 // dotenv.config();
-const app= express();
+const app= express();                   //common express.js syntax
+const PORT = process.env.PORT || 4001;  //common express.js syntax
 const httpServer = createServer(app);
-const PORT = process.env.PORT || 4001;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientDistPath = path.resolve(__dirname, '../client/dist');
@@ -52,9 +53,6 @@ const getAllowedOrigins = () => {
         configuredOrigins.push(
             'http://localhost:5173',
             'http://localhost:5174',
-            'http://localhost:4173',
-            'http://localhost:3000',
-            'http://localhost:10000',
             'http://127.0.0.1:5173',
             'http://127.0.0.1:3000'
         );
@@ -75,11 +73,11 @@ const io = new Server(httpServer, {
 
 initConsultationSocket(io);
 
-connectCloudinry();
+connectCloudinry();             //common express.js syntax
 
-app.use(express.json());
-app.use(cors({ origin: corsOrigin, credentials: true }));//, limiter:true
-// app.use(limiter);
+app.use(express.json());                    //common express.js syntax
+app.use(limiter);
+app.use(cors({ origin: corsOrigin, credentials: true, limiter:true }));
 app.use(helmet());
 app.use(cookieParser());
 
@@ -95,7 +93,6 @@ app.get('/', (req, res) => {
         res.sendFile(clientIndexPath);
         return;
     }
-
     res.send('Server is running successfully');
 });
 
@@ -121,9 +118,9 @@ if (hasClientBuild) {
 
 const startServer = async () => {
     try {
-        await connectDB();
+        await connectDB();          //common express.js syntax
 
-        httpServer.listen(PORT, () => {
+        httpServer.listen(PORT, () => {                                 //common express.js syntax
             console.log(`Server is running on http://localhost:${PORT}`);
         });
 
