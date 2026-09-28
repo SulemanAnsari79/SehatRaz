@@ -11,7 +11,7 @@ import connectDB from './config/db.js';         //common express.js syntax
 import connectCloudinry from './config/cloudinary.js';  //common express.js syntax
 
 import helmet from "helmet";
-// import limiter from './middlewares/rateLimiter.js';
+import limiter from './middlewares/rateLimiter.js';
 import cookieParser from 'cookie-parser';
 
 import userRouter from './routes/userRoute.js';
